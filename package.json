@@ -1,0 +1,16 @@
+{
+  "name": "cognigy-api-toolkit-app",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Root runner for cognigy-api-toolkit-client + cognigy-api-toolkit-backend",
+  "type": "module",
+  "scripts": {
+    "dev": "node dev.mjs",
+    "dev:client": "npm --prefix cognigy-api-toolkit-client run dev",
+    "dev:backend": "npx supabase functions serve --no-verify-jwt --workdir cognigy-api-toolkit-backend",
+    "install:client": "npm --prefix cognigy-api-toolkit-client install"
+  },
+  "devDependencies": {
+    "supabase": "^1.226.4"
+  }
+}
