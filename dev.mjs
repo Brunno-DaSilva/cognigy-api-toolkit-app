@@ -105,7 +105,7 @@ async function main() {
   const alreadyRunning = await isSupabaseRunning();
   if (alreadyRunning) {
     process.stdout.write(
-      `${supabaseLabel} ${DIM}local stack already running, skipping start${RESET}\n`
+      `${supabaseLabel} ${DIM}local stack already running, skipping start${RESET}\n`,
     );
   } else {
     try {
@@ -113,12 +113,12 @@ async function main() {
         "supabase",
         "\x1b[33m",
         backendDir,
-        "npx supabase start"
+        "npx supabase start",
       );
     } catch (err) {
       process.stderr.write(
         `${supabaseLabel} failed to start: ${err.message}\n` +
-          `${supabaseLabel} ${DIM}is Docker Desktop running?${RESET}\n`
+          `${supabaseLabel} ${DIM}is Docker Desktop running?${RESET}\n`,
       );
       process.exit(1);
     }
@@ -129,7 +129,7 @@ async function main() {
   for (const svc of services) {
     const label = prefix(svc.name, svc.color);
     process.stdout.write(
-      `${label} ${DIM}starting "${svc.command}" in ${svc.cwd}${RESET}\n`
+      `${label} ${DIM}starting "${svc.command}" in ${svc.cwd}${RESET}\n`,
     );
     const child = spawn(svc.command, {
       cwd: svc.cwd,
@@ -147,7 +147,7 @@ async function main() {
 
     child.on("exit", (code, signal) => {
       process.stdout.write(
-        `${label} ${DIM}exited (code=${code}, signal=${signal})${RESET}\n`
+        `${label} ${DIM}exited (code=${code}, signal=${signal})${RESET}\n`,
       );
       if (code && code !== 0 && exitCode === 0) exitCode = code;
       alive -= 1;
