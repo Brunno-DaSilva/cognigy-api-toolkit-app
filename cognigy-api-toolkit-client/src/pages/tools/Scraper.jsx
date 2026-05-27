@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useActiveProject } from "../../context/ActiveProjectContext";
 import useScraper from "../../hooks/useScraper";
+import LoadingScreen from "../../components/ui/LoadingScreen";
 import NoActiveProject from "./NoActiveProject";
 
 // Composed in subsequent tasks — these components own their own sections.
@@ -28,7 +29,7 @@ const Scraper = () => {
   const scraper = useScraper();
 
   if (!activeProjectId) return <NoActiveProject toolName="Scraper" />;
-  if (projectLoading) return <div className="admin-page">Loading project…</div>;
+  if (projectLoading) return <LoadingScreen text="Loading project…" />;
   if (!project) return <NoActiveProject toolName="Scraper" />;
 
   const handleStart = () => {

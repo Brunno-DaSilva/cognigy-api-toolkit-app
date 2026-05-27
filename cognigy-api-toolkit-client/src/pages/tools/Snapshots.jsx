@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { useActiveProject } from "../../context/ActiveProjectContext";
 import useSnapshots from "../../hooks/useSnapshots";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import LoadingScreen from "../../components/ui/LoadingScreen";
 import JobProgress from "../../components/tools/Snapshots/JobProgress";
 import PromoteModal from "../../components/tools/Snapshots/PromoteModal";
 import NoActiveProject from "./NoActiveProject";
@@ -61,7 +62,7 @@ const Snapshots = () => {
   const [actionError, setActionError] = useState(null);
 
   if (!activeProjectId) return <NoActiveProject toolName="Snapshots" />;
-  if (projectLoading) return <div className="admin-page">Loading project…</div>;
+  if (projectLoading) return <LoadingScreen text="Loading project…" />;
   if (!project) return <NoActiveProject toolName="Snapshots" />;
 
   const handleTakeSnapshot = async () => {
