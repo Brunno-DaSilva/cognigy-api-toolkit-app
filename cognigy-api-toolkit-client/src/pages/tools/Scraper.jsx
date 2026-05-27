@@ -23,6 +23,7 @@ const DEFAULT_CONFIG = {
 const Scraper = () => {
   const { activeProjectId, project, loading: projectLoading } = useActiveProject();
   const [urls, setUrls] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const scraper = useScraper();
 
@@ -31,7 +32,7 @@ const Scraper = () => {
   if (!project) return <NoActiveProject toolName="Scraper" />;
 
   const handleStart = () => {
-    scraper.start({ urls, config });
+    scraper.start({ urls, documents, config });
   };
 
   return (
@@ -40,21 +41,28 @@ const Scraper = () => {
         <div>
           <div className="admin-page-title">Scraper</div>
           <div className="admin-page-sub">
-            Convert web pages into <code>.ctxt</code> files ready for the
-            Cognigy Knowledge Store. Output is downloaded directly — nothing is
-            stored on the server.
+            Convert web pages and documents (PDF, DOCX, ODT, TXT) into{" "}
+            <code>.ctxt</code> files ready for the Cognigy Knowledge Store.
+            Output is downloaded directly — nothing is stored on the server.
           </div>
         </div>
       </header>
 
       <div className="scraper-layout">
-        <InputPanel urls={urls} setUrls={setUrls} disabled={scraper.running} />
+        <InputPanel
+          urls={urls}
+          setUrls={setUrls}
+          documents={documents}
+          setDocuments={setDocuments}
+          disabled={scraper.running}
+        />
         <ConfigPanel config={config} setConfig={setConfig} disabled={scraper.running} />
       </div>
 
       <Progress
         scraper={scraper}
         urlCount={urls.length}
+        docCount={documents.length}
         onStart={handleStart}
       />
     </div>

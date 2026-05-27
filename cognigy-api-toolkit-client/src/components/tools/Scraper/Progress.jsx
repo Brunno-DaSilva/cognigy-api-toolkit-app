@@ -36,11 +36,12 @@ const downloadZip = async (files) => {
   URL.revokeObjectURL(url);
 };
 
-const Progress = ({ scraper, urlCount, onStart }) => {
+const Progress = ({ scraper, urlCount, docCount = 0, onStart }) => {
   const [zipping, setZipping] = useState(false);
   const { files, errors, terminal, running, done, progress, cancel } = scraper;
 
-  const canStart = !running && urlCount > 0;
+  const totalInputs = urlCount + docCount;
+  const canStart = !running && totalInputs > 0;
   const hasResults = files.length > 0 || errors.length > 0;
 
   const handleDownload = async () => {
@@ -57,12 +58,25 @@ const Progress = ({ scraper, urlCount, onStart }) => {
     <div className="card scraper-progress">
       <div className="scraper-actions">
         <div className="scraper-actions-info">
-          {urlCount > 0 ? (
+          {totalInputs > 0 ? (
             <span>
-              Ready to scrape <strong>{urlCount}</strong> URL{urlCount === 1 ? "" : "s"}
+              Ready to process{" "}
+              {urlCount > 0 && (
+                <>
+                  <strong>{urlCount}</strong> URL{urlCount === 1 ? "" : "s"}
+                </>
+              )}
+              {urlCount > 0 && docCount > 0 && " + "}
+              {docCount > 0 && (
+                <>
+                  <strong>{docCount}</strong> document{docCount === 1 ? "" : "s"}
+                </>
+              )}
             </span>
           ) : (
-            <span className="scraper-count-warn">Add at least one URL to start.</span>
+            <span className="scraper-count-warn">
+              Add at least one URL or document to start.
+            </span>
           )}
         </div>
         <div className="scraper-actions-buttons">

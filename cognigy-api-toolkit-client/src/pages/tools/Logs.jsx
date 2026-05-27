@@ -1,4 +1,5 @@
 import { useActiveProject } from "../../context/ActiveProjectContext";
+import LoadingScreen from "../../components/ui/LoadingScreen";
 import NoActiveProject from "./NoActiveProject";
 import GetLogs from "../../components/tools/GetLogs";
 
@@ -7,7 +8,7 @@ const Logs = () => {
     useActiveProject();
 
   if (!activeProjectId) return <NoActiveProject toolName="Get Logs" />;
-  if (loading) return <div className="admin-page">Loading project…</div>;
+  if (loading) return <LoadingScreen text="Loading project…" />;
   if (!project) return <NoActiveProject toolName="Get Logs" />;
 
   return (

@@ -243,7 +243,56 @@ async function fetchAndExtractArticle(url: string, config: Config): Promise<Arti
 
   const contentBlocks = extractContentBlocks($, $("body"), url);
   const chunksWithUrls = chunkContentWithUrls(contentBlocks, config);
-  return { url, title, chunksWithUrls };
+  return { kind: "url", source: url, title, chunksWithUrls };
+}
+
+// ---------------------------------------------------------------------------
+// Document mode — text extracted client-side (PDF/DOCX/ODT/TXT). We pull any
+// URLs out of the text so they can survive into the `site${i}:` refs, then
+// chunk using the same pipeline as URL mode. One block per document: the
+// chunker handles size-based splitting.
+// ---------------------------------------------------------------------------
+function processDocument(doc: DocumentInput, config: Config): Article {
+  const title = (doc.title || "document").trim();
+  const text = normalizeDocText(doc.text);
+  const urls = extractUrlsFromText(text);
+
+  const block: Block = { text: `${title}\n${text}`, urls };
+  const chunksWithUrls = chunkContentWithUrls([block], config);
+  return {
+    kind: "document",
+    source: doc.source || doc.title || "uploaded-document",
+    title,
+    chunksWithUrls,
+  };
+}
+
+function normalizeDocText(raw: string): string {
+  let t = (raw || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  t = t.replace(/\n{3,}/g, "\n\n");
+  t = t
+    .split("\n")
+    .map((l) => l.replace(/[ \t]+$/g, ""))
+    .join("\n");
+  // Repair URLs broken across line wraps: "https://foo-\nbar.com" → "https://foo-bar.com"
+  t = t.replace(/(https?:\/\/[^\s]+)-\n\s*([^\s]+)/g, "$1$2");
+  return t.trim();
+}
+
+function extractUrlsFromText(text: string): string[] {
+  const matches = text.match(URL_IN_TEXT_RE);
+  return matches ? Array.from(new Set(matches)) : [];
+}
+
+function safeFileStem(name: string): string {
+  return (
+    name
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[^\w\-]+/g, "_")
+      .replace(/_{2,}/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 120) || "document"
+  );
 }
 
 function basename(url: string): string {
@@ -615,17 +664,27 @@ function splitBySentences(title: string, content: string, config: Config): strin
 // size limit would be exceeded. Returns the generated contents in-memory.
 // ---------------------------------------------------------------------------
 function generateFiles(article: Article, config: Config): GeneratedFile[] {
-  const u = new URL(article.url);
-  const domain = u.hostname.replace(/^www\./, "");
-  const siteName = domain.split(".")[0];
-  const urlParts = u.pathname.split("/").filter(Boolean);
-  let lastPart = urlParts[urlParts.length - 1] || "index";
-  lastPart = lastPart.replace(/-[a-f0-9]{6,}$/i, "");
+  // baseTitle + base tags differ per source kind. Everything downstream is
+  // shared: chunk URL refs, metadata header, file-size splitting.
+  let baseTitle: string;
+  let baseTags: string[];
+  if (article.kind === "url") {
+    const u = new URL(article.source);
+    const domain = u.hostname.replace(/^www\./, "");
+    const siteName = domain.split(".")[0];
+    const urlParts = u.pathname.split("/").filter(Boolean);
+    let lastPart = urlParts[urlParts.length - 1] || "index";
+    lastPart = lastPart.replace(/-[a-f0-9]{6,}$/i, "");
+    baseTitle = `${siteName}_${lastPart}`;
+    baseTags = [siteName, lastPart];
+  } else {
+    const stem = safeFileStem(article.title || article.source);
+    baseTitle = stem;
+    baseTags = ["document", stem];
+  }
+  const tags = [...baseTags, ...config.customTags];
 
-  const baseTitle = `${siteName}_${lastPart}`;
-  const tags = [siteName, lastPart, ...config.customTags];
-
-  const parts = splitByFileSize(article.chunksWithUrls, tags, baseTitle, article.url);
+  const parts = splitByFileSize(article.chunksWithUrls, tags, baseTitle, article.source);
   const out: GeneratedFile[] = [];
 
   for (const part of parts) {
@@ -633,7 +692,7 @@ function generateFiles(article: Article, config: Config): GeneratedFile[] {
     const metadata =
       `\`${version}\`\n` +
       `\`title: ${part.title}\`\n` +
-      `\`url: ${article.url}\`\n` +
+      `\`url: ${article.source}\`\n` +
       `\`tags: [${tags.join(", ")}]\`\n\n`;
 
     let content = "";
@@ -650,10 +709,12 @@ function generateFiles(article: Article, config: Config): GeneratedFile[] {
           collectedUrls.add(uniq[j]);
         }
       }
-      content += `\n\`url: ${article.url}\``;
+      content += `\n\`url: ${article.source}\``;
       if (i < part.chunks.length - 1) content += "\n\n";
     }
-    content += `\n\nFor more information, please visit:\n• ${article.url}`;
+    if (article.kind === "url") {
+      content += `\n\nFor more information, please visit:\n• ${article.source}`;
+    }
 
     const full = metadata + content;
     out.push({

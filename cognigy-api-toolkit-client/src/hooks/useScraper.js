@@ -3,11 +3,17 @@ import { supabase } from "../lib/supabase";
 import { getTimestamp } from "../utils";
 
 // Drives the stateless `scraper` Edge Function. The browser is the source of
-// truth: we split the URL list into batches, call the function once per batch,
+// truth: we split the inputs into batches, call the function once per batch,
 // accumulate the returned .ctxt files in memory. Nothing is persisted server-
 // side; closing the tab loses progress (by design).
-const BATCH_SIZE = 5;
-const HARD_MAX_URLS_PER_REQUEST = 25; // mirrors the function's server-side cap
+//
+// URLs and documents share progress + accumulators but use different batch
+// sizes: URLs are tiny on the wire (5 at a time) while documents carry up to
+// ~2MB of pre-extracted text each, so we send them one at a time to stay
+// well under the Edge Function payload limit.
+const URL_BATCH_SIZE = 5;
+const DOC_BATCH_SIZE = 1;
+const HARD_MAX_PER_REQUEST = 25;
 
 const useScraper = () => {
   const [files, setFiles] = useState([]);
@@ -44,101 +50,132 @@ const useScraper = () => {
   }, [addLine]);
 
   const start = useCallback(
-    async ({ urls, config }) => {
+    async ({ urls, documents, config }) => {
       const cleanUrls = (urls ?? [])
         .map((u) => (typeof u === "string" ? u.trim() : ""))
         .filter(Boolean);
+      const cleanDocs = (documents ?? []).filter(
+        (d) => d && typeof d.text === "string" && d.text.trim().length > 0,
+      );
 
-      if (cleanUrls.length === 0) {
-        addLine("No URLs to scrape.", "err");
+      if (cleanUrls.length === 0 && cleanDocs.length === 0) {
+        addLine("Nothing to scrape — add URLs or upload files.", "err");
         return;
       }
 
       reset();
       setRunning(true);
 
-      const batchSize = Math.min(BATCH_SIZE, HARD_MAX_URLS_PER_REQUEST);
-      const total = cleanUrls.length;
-      const batches = [];
-      for (let i = 0; i < cleanUrls.length; i += batchSize) {
-        batches.push(cleanUrls.slice(i, i + batchSize));
-      }
-
+      const total = cleanUrls.length + cleanDocs.length;
       addLine(
-        `Starting scrape — ${total} URL${total === 1 ? "" : "s"} in ${batches.length} batch${batches.length === 1 ? "" : "es"} of up to ${batchSize}.`,
+        `Starting scrape — ${cleanUrls.length} URL${cleanUrls.length === 1 ? "" : "s"} + ${cleanDocs.length} document${cleanDocs.length === 1 ? "" : "s"}.`,
         "info",
       );
 
-      let processed = 0;
-      let succeeded = 0;
-      let failed = 0;
-      const accFiles = [];
-      const accErrors = [];
+      // Shared accumulators. Both loops mutate these and re-publish via
+      // setFiles / setErrors / setProgress after each batch.
+      const state = {
+        processed: 0,
+        succeeded: 0,
+        failed: 0,
+        files: [],
+        errors: [],
+      };
+
+      const publish = () => {
+        setFiles([...state.files]);
+        setErrors([...state.errors]);
+        setProgress({
+          processed: state.processed,
+          total,
+          succeeded: state.succeeded,
+          failed: state.failed,
+          pct: total > 0 ? (state.processed / total) * 100 : 0,
+        });
+      };
+
+      const runBatch = async ({ body, label, sourcesInBatch }) => {
+        const { data, error } = await supabase.functions.invoke("scraper", { body });
+        if (error) {
+          let detail = error.message;
+          if (error.context && typeof error.context.json === "function") {
+            try {
+              const errBody = await error.context.json();
+              detail = errBody.error || errBody.detail || errBody.title || detail;
+            } catch {}
+          }
+          state.failed += sourcesInBatch.length;
+          state.processed += sourcesInBatch.length;
+          for (const src of sourcesInBatch) state.errors.push({ source: src, message: detail });
+          addLine(`${label} failed: ${detail}`, "err");
+          return;
+        }
+        const batchFiles = data?.files ?? [];
+        const batchErrors = data?.errors ?? [];
+        const batchSucceeded = data?.stats?.succeeded ?? 0;
+
+        state.files.push(...batchFiles);
+        state.errors.push(...batchErrors);
+        state.succeeded += batchSucceeded;
+        state.failed += batchErrors.length;
+        state.processed += sourcesInBatch.length;
+
+        addLine(
+          `${label} — ${batchSucceeded}/${sourcesInBatch.length} ok, ${batchFiles.length} file${batchFiles.length === 1 ? "" : "s"} generated.`,
+          batchErrors.length > 0 ? "warn" : "ok",
+        );
+        for (const e of batchErrors) {
+          addLine(`  ✗ ${e.source || e.url || "?"}: ${e.message}`, "warn");
+        }
+      };
 
       try {
-        for (let b = 0; b < batches.length; b++) {
+        // ── URLs ──────────────────────────────────────────────────────
+        const urlBatchSize = Math.min(URL_BATCH_SIZE, HARD_MAX_PER_REQUEST);
+        const urlBatches = [];
+        for (let i = 0; i < cleanUrls.length; i += urlBatchSize) {
+          urlBatches.push(cleanUrls.slice(i, i + urlBatchSize));
+        }
+        for (let b = 0; b < urlBatches.length; b++) {
           if (cancelRef.current) {
             addLine("Cancelled.", "warn");
             break;
           }
-
-          const batch = batches[b];
-          addLine(
-            `Batch ${b + 1}/${batches.length} — scraping ${batch.length} URL${batch.length === 1 ? "" : "s"}...`,
-          );
-
-          const { data, error } = await supabase.functions.invoke("scraper", {
+          const batch = urlBatches[b];
+          addLine(`URL batch ${b + 1}/${urlBatches.length} — scraping ${batch.length} URL${batch.length === 1 ? "" : "s"}...`);
+          await runBatch({
             body: { urls: batch, config },
+            label: `URL batch ${b + 1}`,
+            sourcesInBatch: batch,
           });
+          publish();
+        }
 
-          if (error) {
-            let detail = error.message;
-            if (error.context && typeof error.context.json === "function") {
-              try {
-                const body = await error.context.json();
-                detail = body.error || body.detail || body.title || detail;
-              } catch {}
-            }
-            // Treat the whole batch as failed so the user knows which URLs
-            // didn't make it. The loop continues with the next batch.
-            failed += batch.length;
-            processed += batch.length;
-            for (const url of batch) accErrors.push({ url, message: detail });
-            addLine(`Batch ${b + 1} failed: ${detail}`, "err");
-          } else {
-            const batchFiles = data?.files ?? [];
-            const batchErrors = data?.errors ?? [];
-            const batchSucceeded = data?.stats?.urlsSucceeded ?? 0;
-
-            accFiles.push(...batchFiles);
-            accErrors.push(...batchErrors);
-            succeeded += batchSucceeded;
-            failed += batchErrors.length;
-            processed += batch.length;
-
-            addLine(
-              `Batch ${b + 1} — ${batchSucceeded}/${batch.length} ok, ${batchFiles.length} file${batchFiles.length === 1 ? "" : "s"} generated.`,
-              batchErrors.length > 0 ? "warn" : "ok",
-            );
-            for (const e of batchErrors) {
-              addLine(`  ✗ ${e.url}: ${e.message}`, "warn");
-            }
+        // ── Documents ─────────────────────────────────────────────────
+        const docBatchSize = Math.min(DOC_BATCH_SIZE, HARD_MAX_PER_REQUEST);
+        const docBatches = [];
+        for (let i = 0; i < cleanDocs.length; i += docBatchSize) {
+          docBatches.push(cleanDocs.slice(i, i + docBatchSize));
+        }
+        for (let b = 0; b < docBatches.length; b++) {
+          if (cancelRef.current) {
+            addLine("Cancelled.", "warn");
+            break;
           }
-
-          setFiles([...accFiles]);
-          setErrors([...accErrors]);
-          setProgress({
-            processed,
-            total,
-            succeeded,
-            failed,
-            pct: total > 0 ? (processed / total) * 100 : 0,
+          const batch = docBatches[b];
+          const names = batch.map((d) => d.source || d.title || "document");
+          addLine(`Doc ${b + 1}/${docBatches.length} — chunking ${names.join(", ")}...`);
+          await runBatch({
+            body: { documents: batch, config },
+            label: `Doc ${b + 1}`,
+            sourcesInBatch: names,
           });
+          publish();
         }
 
         if (!cancelRef.current) {
           addLine(
-            `✓ Complete — ${succeeded}/${total} URLs ok, ${accFiles.length} .ctxt file${accFiles.length === 1 ? "" : "s"} ready.`,
+            `✓ Complete — ${state.succeeded}/${total} sources ok, ${state.files.length} .ctxt file${state.files.length === 1 ? "" : "s"} ready.`,
             "ok",
           );
           setDone(true);

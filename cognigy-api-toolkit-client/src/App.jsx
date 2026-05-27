@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import LoadingScreen from "./components/ui/LoadingScreen";
 import Landing from "./pages/Landing";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
@@ -17,14 +18,14 @@ import "./styles/index.css";
 const RequireAuth = ({ children }) => {
   const { session, loading } = useAuth();
   const location = useLocation();
-  if (loading) return <div className="auth-page">Loading…</div>;
+  if (loading) return <LoadingScreen />;
   if (!session) return <Navigate to="/" state={{ from: location }} replace />;
   return children;
 };
 
 const RedirectIfAuthed = ({ children }) => {
   const { session, loading } = useAuth();
-  if (loading) return <div className="auth-page">Loading…</div>;
+  if (loading) return <LoadingScreen />;
   if (session) return <Navigate to="/home" replace />;
   return children;
 };
