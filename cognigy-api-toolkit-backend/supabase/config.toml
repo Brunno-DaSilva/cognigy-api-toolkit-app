@@ -32,5 +32,8 @@ enable_confirmations = false
 [functions.cognigy-proxy]
 verify_jwt = true
 
+[functions.scraper]
+verify_jwt = true
+
 [analytics]
 enabled = false

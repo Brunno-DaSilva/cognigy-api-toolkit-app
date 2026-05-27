@@ -10,6 +10,7 @@ import CustomerDetail from "./pages/admin/CustomerDetail";
 import Projects from "./pages/admin/Projects";
 import Logs from "./pages/tools/Logs";
 import Snapshots from "./pages/tools/Snapshots";
+import Scraper from "./pages/tools/Scraper";
 import Analytics from "./pages/tools/Analytics";
 import "./styles/index.css";
 
@@ -63,6 +64,7 @@ const App = () => (
 
       <Route path="/tools/logs" element={<Logs />} />
       <Route path="/tools/snapshots" element={<Snapshots />} />
+      <Route path="/tools/scraper" element={<Scraper />} />
       <Route path="/tools/analytics" element={<Analytics />} />
 
       <Route path="/dashboard/*" element={<Navigate to="/home" replace />} />

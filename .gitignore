@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-
+cognigy-api-toolkit-scraper/
 # Build output
 dist/
 dist-ssr/

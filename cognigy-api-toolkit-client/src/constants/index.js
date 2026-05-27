@@ -10,6 +10,7 @@ export const TYPE_CONFIG = {
 export const NAV_ITEMS = [
   { id: "logs", label: "Get Logs", icon: "logs" },
   { id: "snapshots", label: "Snapshots", icon: "snapshots" },
+  { id: "scraper", label: "Scraper", icon: "scraper" },
   { id: "analytics", label: "Analytics", icon: "analytics" },
   { id: "settings", label: "Settings", icon: "settings" },
 ];
