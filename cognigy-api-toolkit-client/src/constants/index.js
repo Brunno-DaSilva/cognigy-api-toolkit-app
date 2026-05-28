@@ -28,3 +28,46 @@ export const DEFAULT_CFG = {
   userId: "",
   sort: "timestamp:desc",
 };
+
+export const ANALYTICS_ENDPOINTS = [
+  {
+    value: "/Analytics",
+    label: "Analytics",
+    hint: "Turn-by-turn analytics records. Each row = one conversation turn.",
+  },
+  {
+    value: "/Sessions",
+    label: "Sessions",
+    hint: "One record per session. Duration, turn count, completion status.",
+  },
+  {
+    value: "/Conversations",
+    label: "Conversations",
+    hint: "Full conversation transcripts. Complete message history per session.",
+  },
+];
+
+export const ANALYTICS_DEFAULT_COLUMNS = [
+  "contactId",
+  "sessionId",
+  "inputText",
+  "completedGoalsList",
+  "timestamp",
+  "custom1",
+  "custom2",
+  "custom3",
+  "custom4",
+  "custom5",
+  "custom6",
+  "custom7",
+  "custom8",
+  "custom9",
+  "custom10",
+];
+
+// Columns whose value should be masked to "····{last4}" with a copy button.
+export const ANALYTICS_ID_COLUMNS = ["contactId", "sessionId", "userId"];
+
+export const ANALYTICS_VIEWS_STORAGE_KEY = "cognigy-toolkit:analytics-views";
+export const ANALYTICS_ACTIVE_VIEW_STORAGE_KEY =
+  "cognigy-toolkit:analytics-active-view";

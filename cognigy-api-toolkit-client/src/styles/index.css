@@ -1538,3 +1538,230 @@ body {
   font-family: "DM Mono", monospace;
   color: var(--text-muted);
 }
+
+/* ── Analytics tool ──────────────────────────────────────────── */
+.input--sm {
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+.btn-ghost--danger {
+  color: #ef4444;
+}
+.btn-ghost--danger:hover:not(:disabled) {
+  background: #ef444412;
+  color: #ef4444;
+}
+
+.badge-ok {
+  background: #10b98118;
+  color: #10b981;
+}
+.badge-err {
+  background: #ef444418;
+  color: #ef4444;
+}
+.badge-warn {
+  background: #f59e0b18;
+  color: #f59e0b;
+}
+
+.analytics-hint {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: -4px 0 14px;
+  line-height: 1.5;
+}
+
+.analytics-error {
+  background: #ef444412;
+  border: 1px solid #ef444433;
+  color: #b91c1c;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.analytics-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-subtle);
+  font-size: 14px;
+}
+
+.analytics-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.analytics-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
+}
+
+/* ── View manager ───────────────────────────────────────────── */
+.view-manager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.view-manager-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.view-manager .select--sm {
+  width: 200px;
+}
+
+.view-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view-editor-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 8px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fafafa;
+}
+.view-editor-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-family: "DM Mono", monospace;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.view-editor-col:hover {
+  background: #ffffff;
+}
+.view-editor-col input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Analytics table ────────────────────────────────────────── */
+.atbl-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.atbl {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  font-family: "DM Sans", sans-serif;
+}
+.atbl-th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  padding: 11px 14px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: #f7f8fa;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.atbl-tr:nth-child(even) .atbl-cell {
+  background: #fafbfc;
+}
+.atbl-tr:hover .atbl-cell {
+  background: #f1f3f9;
+}
+.atbl-cell {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: top;
+  min-width: 120px;
+  max-width: 320px;
+  background: var(--surface);
+}
+.atbl-cell--empty {
+  color: var(--text-subtle);
+  text-align: center;
+}
+.atbl-cell-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  justify-content: space-between;
+}
+.atbl-cell-text {
+  flex: 1;
+  min-width: 0;
+  font-family: "DM Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.atbl-copy {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-subtle);
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: background 0.12s, color 0.12s, opacity 0.12s;
+}
+.atbl-tr:hover .atbl-copy {
+  opacity: 1;
+}
+.atbl-copy:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.atbl-copy:focus {
+  outline: none;
+  opacity: 1;
+  background: var(--accent);
+  color: #fff;
+}
+.atbl-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-subtle);
+  font-size: 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+.atbl-footer {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-subtle);
+  text-align: right;
+}

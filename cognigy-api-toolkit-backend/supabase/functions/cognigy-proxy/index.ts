@@ -1,13 +1,18 @@
 // cognigy-proxy
-// Proxies Cognigy.AI REST API calls so the raw API key never touches the browser.
+// Proxies Cognigy.AI API calls so the raw API key never touches the browser.
+//
+// Supports two transports:
+//   - "rest"  (default): hits api-app-{region}.cognigy.ai with X-API-Key header
+//   - "odata":           hits odata-app-{region}.cognigy.ai/v2.4 with ?apikey=... query param
 //
 // Request body (POST):
 //   {
 //     api_key_id: string,      // uuid of the api_keys row to use
-//     path: string,            // e.g. "/v2.0/logs"
+//     path: string,            // e.g. "/v2.0/logs" or "/Analytics"
 //     method?: string,         // default "GET"
 //     query?: Record<string, string | number | boolean | (string | number | boolean)[]>,
-//     body?: unknown
+//     body?: unknown,
+//     transport?: "rest" | "odata"  // default "rest"
 //   }
 //
 // Auth: caller must send Authorization: Bearer <Supabase user JWT>.
@@ -43,9 +48,19 @@ Deno.serve(async (req) => {
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData.user) return json({ error: "unauthorized" }, 401);
 
-    const { api_key_id, path, method = "GET", query, body } = await req.json();
+    const {
+      api_key_id,
+      path,
+      method = "GET",
+      query,
+      body,
+      transport = "rest",
+    } = await req.json();
     if (!api_key_id || !path) {
       return json({ error: "api_key_id and path are required" }, 400);
+    }
+    if (transport !== "rest" && transport !== "odata") {
+      return json({ error: "transport must be 'rest' or 'odata'" }, 400);
     }
 
     // Verify ownership via RLS (user's JWT).
@@ -70,29 +85,75 @@ Deno.serve(async (req) => {
     }
     const { key_plaintext, base_url } = keyRows[0];
 
-    const url = new URL(path, base_url);
-    if (query) {
-      for (const [k, v] of Object.entries(query)) {
-        if (Array.isArray(v)) {
-          for (const item of v) url.searchParams.append(k, String(item));
-        } else if (v !== undefined && v !== null && v !== "") {
-          url.searchParams.set(k, String(v));
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    let finalUrl: string;
+    if (transport === "odata") {
+      // OData has strict expectations about query encoding that URLSearchParams
+      // breaks: it encodes `$filter` → `%24filter` and spaces → `+`. Cognigy's
+      // OData server rejects both with a 400. Build the query string manually
+      // so `$` stays literal and `encodeURIComponent` gives us %20 for spaces.
+      headers["Accept"] = "application/json";
+      const odataUrl = buildOdataUrl(base_url, path);
+      const parts: string[] = [];
+      if (query) {
+        for (const [k, v] of Object.entries(query)) {
+          if (Array.isArray(v)) {
+            for (const item of v) {
+              parts.push(`${k}=${encodeURIComponent(String(item))}`);
+            }
+          } else if (v !== undefined && v !== null && v !== "") {
+            parts.push(`${k}=${encodeURIComponent(String(v))}`);
+          }
         }
       }
+      parts.push(`apikey=${encodeURIComponent(key_plaintext)}`);
+      finalUrl = `${odataUrl.origin}${odataUrl.pathname}?${parts.join("&")}`;
+    } else {
+      headers["Accept"] = "application/hal+json";
+      headers["X-API-Key"] = key_plaintext;
+      const url = new URL(path, base_url);
+      if (query) {
+        for (const [k, v] of Object.entries(query)) {
+          if (Array.isArray(v)) {
+            for (const item of v) url.searchParams.append(k, String(item));
+          } else if (v !== undefined && v !== null && v !== "") {
+            url.searchParams.set(k, String(v));
+          }
+        }
+      }
+      finalUrl = url.toString();
     }
 
-    const cognigyRes = await fetch(url.toString(), {
+    const cognigyRes = await fetch(finalUrl, {
       method,
-      headers: {
-        Accept: "application/hal+json",
-        "Content-Type": "application/json",
-        "X-API-Key": key_plaintext,
-      },
+      headers,
       body: body ? JSON.stringify(body) : undefined,
     });
 
     const responseText = await cognigyRes.text();
     const upstreamType = cognigyRes.headers.get("Content-Type") ?? "";
+
+    // If Cognigy returned an error, wrap it as JSON so supabase-js exposes a
+    // useful message to the caller (it otherwise reports a generic
+    // "non-2xx status code" with no body).
+    if (!cognigyRes.ok) {
+      // Strip the apikey from the URL we report back.
+      const safeUrl = finalUrl.replace(/([?&])apikey=[^&]+/, "$1apikey=***");
+      return json(
+        {
+          error: `Cognigy ${cognigyRes.status}`,
+          upstream_status: cognigyRes.status,
+          upstream_url: safeUrl,
+          upstream_body: responseText.slice(0, 1000),
+          upstream_content_type: upstreamType,
+        },
+        cognigyRes.status,
+      );
+    }
+
     // Normalize HAL+JSON (and other +json variants) to application/json so
     // supabase-js functions.invoke() auto-parses the body. Without this it
     // returns the raw string and pagination silently sees 0 entries.
@@ -116,4 +177,16 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// Builds the full OData URL from the REST base + endpoint path.
+// REST base e.g. https://api-app-us.cognigy.ai is rewritten to
+// https://odata-app-us.cognigy.ai/v2.4, then the endpoint is appended.
+// We construct manually because `new URL("/Analytics", base)` would drop the
+// /v2.4 path segment.
+function buildOdataUrl(restBaseUrl: string, endpoint: string): URL {
+  const u = new URL(restBaseUrl);
+  u.hostname = u.hostname.replace(/^api-app-/, "odata-app-");
+  const ep = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  return new URL(`https://${u.hostname}/v2.4${ep}`);
 }
