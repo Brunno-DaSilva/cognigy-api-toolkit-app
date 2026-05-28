@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const Modal = ({ open, onClose, title, children, footer }) => {
+const Modal = ({ open, onClose, title, children, footer, size = "default" }) => {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -15,7 +15,7 @@ const Modal = ({ open, onClose, title, children, footer }) => {
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
       <div
-        className="modal"
+        className={`modal modal--${size}`}
         role="dialog"
         aria-modal="true"
         onMouseDown={(e) => e.stopPropagation()}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { ANALYTICS_ID_COLUMNS } from "../../../constants";
+import RowDetailModal from "./RowDetailModal";
 
 const MAX_ROWS = 500;
 
@@ -117,6 +118,7 @@ const Cell = ({ col, raw, copiedKey, setCopiedKey, rowIdx }) => {
 
 const AnalyticsTable = ({ rows, columns, search }) => {
   const [copiedKey, setCopiedKey] = useState(null);
+  const [detailRow, setDetailRow] = useState(null);
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -138,6 +140,7 @@ const AnalyticsTable = ({ rows, columns, search }) => {
         <table className="atbl">
           <thead>
             <tr>
+              <th className="atbl-th atbl-th--view">View</th>
               {columns.map((c) => (
                 <th key={c} className="atbl-th">
                   {niceLabel(c)}
@@ -148,6 +151,16 @@ const AnalyticsTable = ({ rows, columns, search }) => {
           <tbody>
             {visible.map((row, idx) => (
               <tr key={idx} className="atbl-tr">
+                <td className="atbl-cell atbl-cell--view">
+                  <button
+                    type="button"
+                    className="atbl-view-btn"
+                    onClick={() => setDetailRow(row)}
+                    aria-label="View full record"
+                  >
+                    View
+                  </button>
+                </td>
                 {columns.map((col) => (
                   <Cell
                     key={col}
@@ -169,6 +182,12 @@ const AnalyticsTable = ({ rows, columns, search }) => {
         {filtered.length > MAX_ROWS &&
           ` — refine the search to see beyond ${MAX_ROWS}.`}
       </div>
+
+      <RowDetailModal
+        open={!!detailRow}
+        row={detailRow}
+        onClose={() => setDetailRow(null)}
+      />
     </>
   );
 };

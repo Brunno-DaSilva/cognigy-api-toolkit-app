@@ -1248,6 +1248,14 @@ body {
   flex-direction: column;
   max-height: calc(100vh - 48px);
 }
+/* Default size — explicit so the consumer can opt into wider variants. */
+.modal--default { max-width: 480px; }
+.modal--lg { max-width: 720px; }
+/* Used by the analytics row-detail modal: stretches to roughly match the
+   tool-layout content area (sidebar ~64px + main padding). */
+.modal--xl {
+  max-width: min(1280px, calc(100vw - 96px));
+}
 .modal-header {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
@@ -1764,4 +1772,146 @@ body {
   font-size: 12px;
   color: var(--text-subtle);
   text-align: right;
+}
+
+/* Sticky first "View" column — always visible while scrolling horizontally */
+.atbl-th--view {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #f7f8fa;
+  border-right: 1px solid var(--border);
+  min-width: 76px;
+  text-align: center;
+}
+.atbl-cell--view {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  min-width: 76px;
+  padding: 8px 12px;
+  text-align: center;
+}
+.atbl-tr:nth-child(even) .atbl-cell--view {
+  background: #fafbfc;
+}
+.atbl-tr:hover .atbl-cell--view {
+  background: #f1f3f9;
+}
+.atbl-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.atbl-view-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.atbl-view-btn:focus {
+  outline: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Row detail modal — full record view */
+.row-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 65vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.row-detail-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 32px;
+  gap: 14px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafbfc;
+}
+.row-detail-row:hover {
+  background: #f4f6fa;
+}
+.row-detail-key {
+  font-family: "DM Mono", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  word-break: break-word;
+  padding-top: 2px;
+}
+.row-detail-value {
+  font-family: "DM Mono", monospace;
+  font-size: 12.5px;
+  color: var(--text);
+  min-width: 0;
+  word-break: break-word;
+}
+.row-detail-text {
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+.row-detail-pre {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: "DM Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.row-detail-empty {
+  color: var(--text-subtle);
+}
+.row-detail-copy {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.row-detail-copy:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.row-detail-copy:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .row-detail-row {
+    grid-template-columns: 1fr 32px;
+  }
+  .row-detail-key {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
 }
