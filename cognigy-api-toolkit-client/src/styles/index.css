@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap");
 
 *,
 *::before,
@@ -24,7 +24,7 @@
 }
 
 body {
-  font-family: "DM Sans", "Helvetica Neue", sans-serif;
+  font-family: "Figtree", "Helvetica Neue", sans-serif;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -233,7 +233,7 @@ body {
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   color: var(--text);
   background: #fafafa;
   outline: none;
@@ -248,7 +248,7 @@ body {
 }
 .select {
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Figtree", sans-serif;
 }
 .select--sm {
   width: 140px;
@@ -274,7 +274,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Figtree", sans-serif;
 }
 .type-chip:hover {
   border-color: #9ca3af;
@@ -306,7 +306,7 @@ body {
   cursor: pointer;
   letter-spacing: 0.3px;
   transition: all 0.15s;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Figtree", sans-serif;
 }
 .btn--primary {
   background: var(--text);
@@ -382,7 +382,7 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
 }
 .progress-bar-bg {
   height: 6px;
@@ -405,7 +405,7 @@ body {
   padding: 16px;
   height: 160px;
   overflow-y: auto;
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   font-size: 11px;
   line-height: 1.8;
 }
@@ -620,6 +620,87 @@ body {
   letter-spacing: 0.08em;
 }
 
+/* ── Branded auth (login) ───────────────────────────────────── */
+.auth-page--branded {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 700px at 92% -8%, rgba(134, 59, 255, 0.18), transparent 60%),
+    radial-gradient(800px 500px at 15% 110%, rgba(134, 59, 255, 0.06), transparent 60%),
+    var(--bg);
+}
+
+.auth-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.auth-decor-logo {
+  position: absolute;
+  filter: drop-shadow(0 6px 20px rgba(134, 59, 255, 0.18));
+  transform-origin: center;
+}
+
+.auth-card--branded {
+  position: relative;
+  z-index: 1;
+  max-width: 440px;
+  padding: 36px 36px 32px;
+  border: 1px solid rgba(134, 59, 255, 0.15);
+  box-shadow:
+    0 12px 40px rgba(134, 59, 255, 0.12),
+    0 2px 6px rgba(15, 17, 23, 0.04);
+  backdrop-filter: blur(2px);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.auth-brand-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.auth-card--branded .auth-title {
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.auth-button--brand {
+  border-color: #863bff;
+  background: linear-gradient(180deg, #9450ff 0%, #863bff 100%);
+  box-shadow: 0 6px 18px rgba(134, 59, 255, 0.28);
+}
+.auth-button--brand:hover:not(:disabled) {
+  background: linear-gradient(180deg, #863bff 0%, #7325f0 100%);
+}
+.auth-button--brand:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(134, 59, 255, 0.3);
+}
+
+.auth-card--branded .auth-input:focus {
+  border-color: #863bff;
+  box-shadow: 0 0 0 3px rgba(134, 59, 255, 0.18);
+}
+
+.auth-link--brand {
+  color: #863bff;
+}
+
+/* Hide the cascade on small screens so the card has room to breathe. */
+@media (max-width: 720px) {
+  .auth-decor {
+    display: none;
+  }
+}
+
 /* ── Dashboard ──────────────────────────────────────────────── */
 .dashboard {
   padding: 32px 40px;
@@ -676,7 +757,7 @@ body {
   font-size: 15px;
 }
 .project-card-meta {
-  font-family: "DM Mono", ui-monospace, Consolas, monospace;
+  font-family: "Figtree", ui-monospace, Consolas, monospace;
   font-size: 12px;
   color: var(--text-muted);
   word-break: break-all;
@@ -812,7 +893,7 @@ body {
   font-size: 10px;
   color: #9ca3af;
   margin-top: 2px;
-  font-family: "DM Mono", ui-monospace, Consolas, monospace;
+  font-family: "Figtree", ui-monospace, Consolas, monospace;
 }
 .main-project-selector-caret {
   font-size: 10px;
@@ -875,7 +956,7 @@ body {
   background: rgba(99, 102, 241, 0.2);
 }
 .main-project-selector-option-meta {
-  font-family: "DM Mono", ui-monospace, Consolas, monospace;
+  font-family: "Figtree", ui-monospace, Consolas, monospace;
   font-size: 10px;
   color: #9ca3af;
   margin-top: 2px;
@@ -1128,7 +1209,7 @@ body {
   padding-right: 60px;
 }
 .entity-card-meta {
-  font-family: "DM Mono", ui-monospace, Consolas, monospace;
+  font-family: "Figtree", ui-monospace, Consolas, monospace;
   font-size: 12px;
   color: var(--text-muted);
   word-break: break-all;
@@ -1214,7 +1295,7 @@ body {
   font-size: 14px;
 }
 .row-item-meta {
-  font-family: "DM Mono", ui-monospace, Consolas, monospace;
+  font-family: "Figtree", ui-monospace, Consolas, monospace;
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 2px;
@@ -1374,7 +1455,7 @@ body {
 }
 .kv-grid dd {
   margin: 0;
-  font-family: "DM Mono", ui-monospace, Consolas, monospace;
+  font-family: "Figtree", ui-monospace, Consolas, monospace;
   word-break: break-all;
 }
 
@@ -1400,7 +1481,7 @@ body {
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--text-muted);
-  font-family: "DM Sans", sans-serif;
+  font-family: "Figtree", sans-serif;
 }
 
 /* ── Scraper tool ───────────────────────────────────────────── */
@@ -1456,7 +1537,7 @@ body {
   padding: 10px 18px;
 }
 .scraper-textarea {
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   font-size: 12px;
   resize: vertical;
   min-height: 200px;
@@ -1470,7 +1551,7 @@ body {
   color: var(--text-muted);
 }
 .scraper-count {
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
 }
 .scraper-count-warn {
   color: #f59e0b;
@@ -1538,12 +1619,12 @@ body {
   font-size: 12px;
 }
 .scraper-doc-name {
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   color: var(--text);
   word-break: break-all;
 }
 .scraper-doc-meta {
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   color: var(--text-muted);
 }
 
@@ -1650,7 +1731,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   font-size: 12.5px;
   color: var(--text);
   cursor: pointer;
@@ -1679,7 +1760,7 @@ body {
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13px;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Figtree", sans-serif;
 }
 .atbl-th {
   position: sticky;
@@ -1724,7 +1805,7 @@ body {
 .atbl-cell-text {
   flex: 1;
   min-width: 0;
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   font-size: 12.5px;
   line-height: 1.5;
   white-space: nowrap;
@@ -1848,7 +1929,7 @@ body {
   background: #f4f6fa;
 }
 .row-detail-key {
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
@@ -1856,7 +1937,7 @@ body {
   padding-top: 2px;
 }
 .row-detail-value {
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   font-size: 12.5px;
   color: var(--text);
   min-width: 0;
@@ -1872,7 +1953,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-family: "DM Mono", monospace;
+  font-family: "Figtree", monospace;
   font-size: 12px;
   line-height: 1.5;
   white-space: pre-wrap;

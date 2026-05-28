@@ -126,7 +126,7 @@ Design system (already built, do not change):
 
 Professional / enterprise style
 Light off-white background (#f4f5f7), white cards, dark sidebar (#16181d)
-Font: DM Sans + DM Mono
+Font: Figtree (sans + mono usage)
 No external UI component library — all custom CSS in src/styles/index.css
 Color accents: #6366f1 (indigo), #10b981 (green), #ef4444 (red), #f59e0b (amber)
 
