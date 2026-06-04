@@ -40,6 +40,7 @@ const GetLogs = ({ project, customer, apiKeys }) => {
     }
     fetchAll({
       apiKeyId,
+      projectId: project.id,
       cognigyProjectId: project.cognigy_project_id,
       cfg,
       types,

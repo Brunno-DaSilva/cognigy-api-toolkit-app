@@ -2,7 +2,38 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveProject } from "../../context/ActiveProjectContext";
+import { useTheme } from "../../context/ThemeContext";
+import { getAvatarUrl } from "../../utils";
 import ProjectSelector from "./ProjectSelector";
+import EnvList from "./EnvList";
+
+const SunIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+const ProfileIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const SignOutIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
 
 const Icon = ({ name }) => {
   const common = {
@@ -107,6 +138,7 @@ const ToolItem = ({ to, label, icon, hasActiveProject }) => {
 const MainSidebar = () => {
   const { user, logout } = useAuth();
   const { activeProjectId } = useActiveProject();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [popOpen, setPopOpen] = useState(false);
   const userRef = useRef(null);
@@ -132,6 +164,7 @@ const MainSidebar = () => {
     <aside className="main-sidebar">
       <div className="main-brand">Cognigy API Toolkit</div>
 
+      <EnvList />
       <ProjectSelector />
 
       <nav className="main-nav">
@@ -202,9 +235,26 @@ const MainSidebar = () => {
         {popOpen && (
           <div className="main-user-popover">
             <Link to="/profile" onClick={() => setPopOpen(false)}>
+              <span className="main-user-popover-icon">
+                <ProfileIcon />
+              </span>
               Profile
             </Link>
+            <button
+              type="button"
+              className="main-user-popover-theme"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+            >
+              <span className="main-user-popover-icon">
+                {theme === "light" ? <MoonIcon /> : <SunIcon />}
+              </span>
+              Theme: <strong>{theme === "light" ? "Light" : "Dark"}</strong>
+            </button>
             <button type="button" onClick={handleSignOut}>
+              <span className="main-user-popover-icon">
+                <SignOutIcon />
+              </span>
               Sign out
             </button>
           </div>
@@ -214,7 +264,11 @@ const MainSidebar = () => {
           className="main-user-button"
           onClick={() => setPopOpen((o) => !o)}
         >
-          <div className="main-avatar">{initialsFor(displayName)}</div>
+          <img
+            className="main-avatar main-avatar--img"
+            src={getAvatarUrl(user, 64)}
+            alt={initialsFor(displayName)}
+          />
           <div className="main-user-meta">
             <div className="main-user-name">{displayName}</div>
             <div className="main-user-email">{user?.email}</div>

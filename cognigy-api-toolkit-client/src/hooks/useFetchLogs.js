@@ -26,7 +26,7 @@ const useFetchLogs = () => {
   }, []);
 
   const fetchAll = useCallback(
-    async ({ apiKeyId, cognigyProjectId, cfg, types }) => {
+    async ({ apiKeyId, projectId, cognigyProjectId, cfg, types }) => {
       reset();
       setRunning(true);
 
@@ -64,7 +64,7 @@ const useFetchLogs = () => {
 
           const { data, error } = await supabase.functions.invoke(
             "cognigy-proxy",
-            { body: { api_key_id: apiKeyId, path, query } }
+            { body: { api_key_id: apiKeyId, project_id: projectId, path, query } }
           );
 
           if (error) {

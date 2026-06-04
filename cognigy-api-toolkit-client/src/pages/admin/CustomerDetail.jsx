@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import CustomerForm from "../../components/admin/CustomerForm";
 import ProjectForm from "../../components/admin/ProjectForm";
 import ApiKeyForm from "../../components/admin/ApiKeyForm";
+import EnvironmentForm from "../../components/admin/EnvironmentForm";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { useActiveProject } from "../../context/ActiveProjectContext";
 
@@ -20,6 +21,7 @@ const CustomerDetail = () => {
   const [customer, setCustomer] = useState(null);
   const [projects, setProjects] = useState([]);
   const [apiKeys, setApiKeys] = useState([]);
+  const [environments, setEnvironments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -35,11 +37,15 @@ const CustomerDetail = () => {
   const [editingApiKey, setEditingApiKey] = useState(null);
   const [confirmApiKeyDelete, setConfirmApiKeyDelete] = useState(null);
 
+  const [envFormOpen, setEnvFormOpen] = useState(false);
+  const [editingEnv, setEditingEnv] = useState(null);
+  const [confirmEnvDelete, setConfirmEnvDelete] = useState(null);
+
   const [busyChild, setBusyChild] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [c, p, k] = await Promise.all([
+    const [c, p, k, e] = await Promise.all([
       supabase
         .from("customers")
         .select("id, name, base_url, created_at")
@@ -47,7 +53,7 @@ const CustomerDetail = () => {
         .maybeSingle(),
       supabase
         .from("projects")
-        .select("id, name, cognigy_project_id, created_at")
+        .select("id, name, cognigy_project_id, environment_id, created_at")
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false }),
       supabase
@@ -55,9 +61,14 @@ const CustomerDetail = () => {
         .select("id, name, key_last4, created_at")
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("environments")
+        .select("id, name, base_url, created_at")
+        .eq("customer_id", customerId)
+        .order("name"),
     ]);
 
-    const err = c.error || p.error || k.error;
+    const err = c.error || p.error || k.error || e.error;
     if (err) {
       setError(err.message);
       setLoading(false);
@@ -66,6 +77,7 @@ const CustomerDetail = () => {
     setCustomer(c.data);
     setProjects(p.data ?? []);
     setApiKeys(k.data ?? []);
+    setEnvironments(e.data ?? []);
     setLoading(false);
   }, [customerId]);
 
@@ -119,6 +131,25 @@ const CustomerDetail = () => {
     load();
   };
 
+  const handleEnvDelete = async () => {
+    if (!confirmEnvDelete) return;
+    setBusyChild(true);
+    const { error: err } = await supabase
+      .from("environments")
+      .delete()
+      .eq("id", confirmEnvDelete.id);
+    setBusyChild(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setConfirmEnvDelete(null);
+    load();
+  };
+
+  const envNameById = (envId) =>
+    environments.find((e) => e.id === envId)?.name ?? null;
+
   if (loading) {
     return (
       <div className="admin-page">
@@ -167,6 +198,65 @@ const CustomerDetail = () => {
 
       {error && <div className="form-error" style={{ marginBottom: 16 }}>{error}</div>}
 
+      {/* Environments ---------------------------------------------------- */}
+      <div className="section-header">
+        <div className="section-title">Environments</div>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => {
+            setEditingEnv(null);
+            setEnvFormOpen(true);
+          }}
+        >
+          + Add environment
+        </button>
+      </div>
+
+      {environments.length === 0 ? (
+        <div className="row-list">
+          <div className="row-list-empty">
+            No environments yet. Customers without envs use the customer's base URL
+            directly. Add an environment to route specific projects (e.g. QA, DEV)
+            at a different URL.
+          </div>
+        </div>
+      ) : (
+        <div className="row-list">
+          {environments.map((e) => (
+            <div key={e.id} className="row-item">
+              <div className="row-item-main">
+                <div className="row-item-name">{e.name}</div>
+                <div className="row-item-meta">{e.base_url}</div>
+              </div>
+              <div className="row-item-actions">
+                <button
+                  type="button"
+                  className="icon-btn"
+                  title="Edit"
+                  aria-label="Edit"
+                  onClick={() => {
+                    setEditingEnv(e);
+                    setEnvFormOpen(true);
+                  }}
+                >
+                  ✎
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn icon-btn--danger"
+                  title="Delete"
+                  aria-label="Delete"
+                  onClick={() => setConfirmEnvDelete(e)}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Projects -------------------------------------------------------- */}
       <div className="section-header">
         <div className="section-title">Projects</div>
@@ -206,7 +296,14 @@ const CustomerDetail = () => {
               >
                 {p.name}
               </button>
-              <div className="entity-card-meta">{p.cognigy_project_id}</div>
+              <div className="entity-card-meta">
+                {p.cognigy_project_id}
+                {p.environment_id && envNameById(p.environment_id) && (
+                  <span className="entity-card-env">
+                    {envNameById(p.environment_id)}
+                  </span>
+                )}
+              </div>
 
               <div className="entity-card-actions">
                 <button
@@ -305,7 +402,16 @@ const CustomerDetail = () => {
         open={projectFormOpen}
         project={editingProject}
         customerId={customerId}
+        environments={environments}
         onClose={() => setProjectFormOpen(false)}
+        onSaved={() => load()}
+      />
+
+      <EnvironmentForm
+        open={envFormOpen}
+        environment={editingEnv}
+        customerId={customerId}
+        onClose={() => setEnvFormOpen(false)}
         onSaved={() => load()}
       />
 
@@ -351,6 +457,19 @@ const CustomerDetail = () => {
         busy={busyChild}
         onConfirm={handleApiKeyDelete}
         onCancel={() => setConfirmApiKeyDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmEnvDelete}
+        title="Delete environment"
+        message={
+          confirmEnvDelete
+            ? `Delete environment "${confirmEnvDelete.name}"? Projects pinned to this env will become unassigned and fall back to the customer's base URL.`
+            : ""
+        }
+        busy={busyChild}
+        onConfirm={handleEnvDelete}
+        onCancel={() => setConfirmEnvDelete(null)}
       />
     </div>
   );

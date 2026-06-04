@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
 import { useActiveProject } from "../../context/ActiveProjectContext";
 
 const ProjectSelector = () => {
   const navigate = useNavigate();
-  const { activeProjectId, setActiveProjectId, project, customer } =
-    useActiveProject();
+  const {
+    activeProjectId,
+    setActiveProjectId,
+    project,
+    customer,
+    environment,
+    visibleProjects,
+  } = useActiveProject();
   const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const ref = useRef(null);
 
@@ -21,36 +25,15 @@ const ProjectSelector = () => {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      const { data } = await supabase
-        .from("projects")
-        .select("id, name, cognigy_project_id, customer:customers(id, name, base_url)")
-        .order("name", { ascending: true });
-      setRows(data ?? []);
-    })();
-  }, [open]);
-
-  const grouped = useMemo(() => {
+  const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const filtered = term
-      ? rows.filter(
-          (r) =>
-            r.name.toLowerCase().includes(term) ||
-            r.cognigy_project_id.toLowerCase().includes(term) ||
-            r.customer?.name?.toLowerCase().includes(term)
-        )
-      : rows;
-
-    const byCustomer = new Map();
-    for (const r of filtered) {
-      const cName = r.customer?.name ?? "—";
-      if (!byCustomer.has(cName)) byCustomer.set(cName, []);
-      byCustomer.get(cName).push(r);
-    }
-    return Array.from(byCustomer.entries());
-  }, [rows, search]);
+    if (!term) return visibleProjects;
+    return visibleProjects.filter(
+      (r) =>
+        r.name.toLowerCase().includes(term) ||
+        r.cognigy_project_id.toLowerCase().includes(term),
+    );
+  }, [visibleProjects, search]);
 
   const select = (id) => {
     setActiveProjectId(id);
@@ -59,9 +42,16 @@ const ProjectSelector = () => {
     navigate("/tools/logs");
   };
 
+  // Don't render if no customer is active — there's nothing to scope to.
+  if (!customer) return null;
+
+  const scopeLabel = environment
+    ? `${environment.name} projects`
+    : "All projects";
+
   return (
     <div className="main-project-selector" ref={ref}>
-      <div className="main-project-selector-label">Active project</div>
+      <div className="main-project-selector-label">{scopeLabel}</div>
       <button
         type="button"
         className={
@@ -73,11 +63,17 @@ const ProjectSelector = () => {
         <div style={{ minWidth: 0 }}>
           {project ? (
             <>
-              <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {project.name}
               </div>
               <div className="main-project-selector-meta">
-                {customer?.name || ""}
+                {project.cognigy_project_id}
               </div>
             </>
           ) : (
@@ -96,31 +92,32 @@ const ProjectSelector = () => {
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
           />
-          {grouped.length === 0 ? (
-            <div className="main-project-selector-empty">No projects found.</div>
+          {filtered.length === 0 ? (
+            <div className="main-project-selector-empty">
+              {visibleProjects.length === 0
+                ? environment
+                  ? `No projects in ${environment.name} yet.`
+                  : "No projects under this customer yet."
+                : "No matches."}
+            </div>
           ) : (
-            grouped.map(([customerName, items]) => (
-              <div key={customerName}>
-                <div className="main-project-selector-group">{customerName}</div>
-                {items.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={
-                      "main-project-selector-option" +
-                      (p.id === activeProjectId
-                        ? " main-project-selector-option--active"
-                        : "")
-                    }
-                    onClick={() => select(p.id)}
-                  >
-                    <div>{p.name}</div>
-                    <div className="main-project-selector-option-meta">
-                      {p.cognigy_project_id}
-                    </div>
-                  </button>
-                ))}
-              </div>
+            filtered.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={
+                  "main-project-selector-option" +
+                  (p.id === activeProjectId
+                    ? " main-project-selector-option--active"
+                    : "")
+                }
+                onClick={() => select(p.id)}
+              >
+                <div>{p.name}</div>
+                <div className="main-project-selector-option-meta">
+                  {p.cognigy_project_id}
+                </div>
+              </button>
             ))
           )}
         </div>

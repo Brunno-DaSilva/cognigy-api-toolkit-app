@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
 
     const {
       api_key_id,
+      project_id = null,
       path,
       method = "GET",
       query,
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: keyRows, error: keyErr } = await admin.rpc(
       "get_api_key_plaintext",
-      { p_api_key_id: api_key_id },
+      { p_api_key_id: api_key_id, p_project_id: project_id },
     );
     if (keyErr || !keyRows || keyRows.length === 0) {
       return json({ error: "decrypt failed" }, 500);

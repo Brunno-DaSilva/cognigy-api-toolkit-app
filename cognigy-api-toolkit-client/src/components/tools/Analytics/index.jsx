@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
-import { useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import Card from "../../ui/Card";
 import FormField from "../../ui/FormField";
 import StatCard from "../../ui/StatCard";
 import ViewManager from "./ViewManager";
 import AnalyticsTable from "./AnalyticsTable";
-import useFetchAnalytics from "../../../hooks/useFetchAnalytics";
-import { toLocalDatetime, getYesterday } from "../../../utils";
+import { useAnalyticsCache } from "../../../context/AnalyticsCacheContext";
 import { ANALYTICS_ENDPOINTS } from "../../../constants";
 
 const exportCSV = (rows, columns, endpoint) => {
@@ -40,22 +39,36 @@ const exportCSV = (rows, columns, endpoint) => {
 };
 
 const Analytics = ({ project, customer, apiKeys }) => {
-  const [apiKeyId, setApiKeyId] = useState(apiKeys[0]?.id ?? "");
-  const [endpoint, setEndpoint] = useState(ANALYTICS_ENDPOINTS[0].value);
-  const [dateField, setDateField] = useState("timestamp");
-  const [startDate, setStartDate] = useState(
-    toLocalDatetime(getYesterday())
+  const {
+    form,
+    updateForm,
+    search,
+    setSearch,
+    viewColumns,
+    setViewColumns,
+    rows,
+    columns,
+    running,
+    done,
+    error,
+    fetchAnalytics,
+  } = useAnalyticsCache();
+
+  const { apiKeyId, endpoint, dateField, startDate, endDate } = form;
+
+  // Default the API key once apiKeys load (if nothing was cached yet).
+  useEffect(() => {
+    if (!apiKeyId && apiKeys.length > 0) {
+      updateForm({ apiKeyId: apiKeys[0].id });
+    }
+  }, [apiKeyId, apiKeys, updateForm]);
+
+  const handleColumnsChange = useCallback(
+    (cols) => {
+      setViewColumns(cols);
+    },
+    [setViewColumns]
   );
-  const [endDate, setEndDate] = useState(toLocalDatetime(new Date()));
-  const [search, setSearch] = useState("");
-  const [viewColumns, setViewColumns] = useState([]);
-
-  const { rows, columns, running, done, error, fetchAnalytics } =
-    useFetchAnalytics();
-
-  const handleColumnsChange = useCallback((cols) => {
-    setViewColumns(cols);
-  }, []);
 
   const handleFetch = () => {
     if (!apiKeyId) {
@@ -68,6 +81,7 @@ const Analytics = ({ project, customer, apiKeys }) => {
     }
     fetchAnalytics({
       apiKeyId,
+      projectId: project.id,
       cognigyProjectId: project.cognigy_project_id,
       endpoint,
       dateField,
@@ -138,7 +152,7 @@ const Analytics = ({ project, customer, apiKeys }) => {
               <select
                 className="select"
                 value={apiKeyId}
-                onChange={(e) => setApiKeyId(e.target.value)}
+                onChange={(e) => updateForm({ apiKeyId: e.target.value })}
               >
                 {apiKeys.map((k) => (
                   <option key={k.id} value={k.id}>
@@ -152,7 +166,7 @@ const Analytics = ({ project, customer, apiKeys }) => {
             <select
               className="select"
               value={endpoint}
-              onChange={(e) => setEndpoint(e.target.value)}
+              onChange={(e) => updateForm({ endpoint: e.target.value })}
             >
               {ANALYTICS_ENDPOINTS.map((ep) => (
                 <option key={ep.value} value={ep.value}>
@@ -165,7 +179,7 @@ const Analytics = ({ project, customer, apiKeys }) => {
             <input
               className="input"
               value={dateField}
-              onChange={(e) => setDateField(e.target.value)}
+              onChange={(e) => updateForm({ dateField: e.target.value })}
             />
           </FormField>
         </div>
@@ -178,7 +192,7 @@ const Analytics = ({ project, customer, apiKeys }) => {
               className="input"
               type="datetime-local"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => updateForm({ startDate: e.target.value })}
             />
           </FormField>
           <FormField label="To (UTC)" required>
@@ -186,7 +200,7 @@ const Analytics = ({ project, customer, apiKeys }) => {
               className="input"
               type="datetime-local"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => updateForm({ endDate: e.target.value })}
             />
           </FormField>
         </div>

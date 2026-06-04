@@ -1,5 +1,26 @@
-import { useCallback, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { supabase } from "../lib/supabase";
+import { useActiveProject } from "./ActiveProjectContext";
+import { toLocalDatetime, getYesterday } from "../utils";
+import { ANALYTICS_ENDPOINTS } from "../constants";
+
+const AnalyticsCacheContext = createContext(null);
+
+const initialFormState = () => ({
+  apiKeyId: "",
+  endpoint: ANALYTICS_ENDPOINTS[0].value,
+  dateField: "timestamp",
+  startDate: toLocalDatetime(getYesterday()),
+  endDate: toLocalDatetime(new Date()),
+});
 
 const buildFilter = ({ cognigyProjectId, dateField, startDate, endDate }) => {
   const parts = [`projectId eq '${cognigyProjectId}'`];
@@ -12,12 +33,41 @@ const buildFilter = ({ cognigyProjectId, dateField, startDate, endDate }) => {
   return parts.join(" and ");
 };
 
-const useFetchAnalytics = () => {
+export const AnalyticsCacheProvider = ({ children }) => {
+  const { activeProjectId } = useActiveProject();
+
+  // Form inputs
+  const [form, setForm] = useState(initialFormState);
+  const updateForm = useCallback((patch) => {
+    setForm((prev) => ({ ...prev, ...patch }));
+  }, []);
+
+  // Search + view selection
+  const [search, setSearch] = useState("");
+  const [viewColumns, setViewColumns] = useState([]);
+
+  // Fetched data
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState(null);
+
+  // When the active project changes, clear cached data — it belongs to a
+  // different project. Form inputs keep their last values; only the fetched
+  // results get reset.
+  const prevProjectIdRef = useRef(activeProjectId);
+  useEffect(() => {
+    if (prevProjectIdRef.current !== activeProjectId) {
+      prevProjectIdRef.current = activeProjectId;
+      setRows([]);
+      setColumns([]);
+      setDone(false);
+      setError(null);
+      setSearch("");
+      setViewColumns([]);
+    }
+  }, [activeProjectId]);
 
   const reset = useCallback(() => {
     setRows([]);
@@ -66,8 +116,6 @@ const useFetchAnalytics = () => {
               const raw = await invokeError.context.text();
               try {
                 const body = JSON.parse(raw);
-                // Prefer the upstream Cognigy message — it tells us what's
-                // actually wrong. Fall back to our wrapper's error field.
                 const upstreamMsg =
                   body.upstream_body || body.detail || body.title;
                 const base = upstreamMsg || body.error || detail;
@@ -97,7 +145,49 @@ const useFetchAnalytics = () => {
     [reset]
   );
 
-  return { rows, columns, running, done, error, fetchAnalytics, reset };
+  const value = useMemo(
+    () => ({
+      form,
+      updateForm,
+      search,
+      setSearch,
+      viewColumns,
+      setViewColumns,
+      rows,
+      columns,
+      running,
+      done,
+      error,
+      fetchAnalytics,
+      reset,
+    }),
+    [
+      form,
+      updateForm,
+      search,
+      viewColumns,
+      rows,
+      columns,
+      running,
+      done,
+      error,
+      fetchAnalytics,
+      reset,
+    ]
+  );
+
+  return (
+    <AnalyticsCacheContext.Provider value={value}>
+      {children}
+    </AnalyticsCacheContext.Provider>
+  );
 };
 
-export default useFetchAnalytics;
+export const useAnalyticsCache = () => {
+  const ctx = useContext(AnalyticsCacheContext);
+  if (!ctx)
+    throw new Error(
+      "useAnalyticsCache must be used inside <AnalyticsCacheProvider>"
+    );
+  return ctx;
+};

@@ -28,3 +28,12 @@ export const downloadJSON = (logs) => {
 
 export const getTimestamp = () =>
   new Date().toISOString().split("T")[1].split(".")[0];
+
+// Returns the user's uploaded avatar URL, or a stable robohash fallback.
+// Using user.id as the seed gives each user a consistent random robot.
+export const getAvatarUrl = (user, size = 180) => {
+  const uploaded = user?.user_metadata?.avatar_url;
+  if (uploaded) return uploaded;
+  const seed = user?.id || "anonymous";
+  return `https://robohash.org/${encodeURIComponent(seed)}?set=set2&size=${size}x${size}`;
+};

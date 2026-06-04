@@ -3,10 +3,18 @@ import Modal from "../ui/Modal";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 
-const ProjectForm = ({ open, project, customerId, onClose, onSaved }) => {
+const ProjectForm = ({
+  open,
+  project,
+  customerId,
+  environments = [],
+  onClose,
+  onSaved,
+}) => {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [cognigyProjectId, setCognigyProjectId] = useState("");
+  const [environmentId, setEnvironmentId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -14,6 +22,7 @@ const ProjectForm = ({ open, project, customerId, onClose, onSaved }) => {
     if (open) {
       setName(project?.name ?? "");
       setCognigyProjectId(project?.cognigy_project_id ?? "");
+      setEnvironmentId(project?.environment_id ?? "");
       setError(null);
     }
   }, [open, project]);
@@ -23,21 +32,22 @@ const ProjectForm = ({ open, project, customerId, onClose, onSaved }) => {
     setError(null);
     setSubmitting(true);
     try {
+      const payload = {
+        name: name.trim(),
+        cognigy_project_id: cognigyProjectId.trim(),
+        environment_id: environmentId || null,
+      };
       if (project) {
         const { error: err } = await supabase
           .from("projects")
-          .update({
-            name: name.trim(),
-            cognigy_project_id: cognigyProjectId.trim(),
-          })
+          .update(payload)
           .eq("id", project.id);
         if (err) throw err;
       } else {
         const { error: err } = await supabase.from("projects").insert({
           customer_id: customerId,
           user_id: user.id,
-          name: name.trim(),
-          cognigy_project_id: cognigyProjectId.trim(),
+          ...payload,
         });
         if (err) throw err;
       }
@@ -96,6 +106,28 @@ const ProjectForm = ({ open, project, customerId, onClose, onSaved }) => {
             Found in the Cognigy URL after /project/ — e.g. 69dfbf7216e36e78370289b3
           </span>
         </label>
+
+        {environments.length > 0 && (
+          <label className="field">
+            <span className="field-label">Environment (optional)</span>
+            <select
+              className="field-input"
+              value={environmentId}
+              onChange={(e) => setEnvironmentId(e.target.value)}
+            >
+              <option value="">— None (use customer's base URL) —</option>
+              {environments.map((env) => (
+                <option key={env.id} value={env.id}>
+                  {env.name} — {env.base_url}
+                </option>
+              ))}
+            </select>
+            <span className="field-hint">
+              Pin this project to an environment so API calls route to that env's
+              base URL. Leave unset to use the customer's base URL.
+            </span>
+          </label>
+        )}
       </form>
     </Modal>
   );
