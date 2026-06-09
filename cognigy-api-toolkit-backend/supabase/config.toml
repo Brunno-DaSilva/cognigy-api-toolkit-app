@@ -35,5 +35,8 @@ verify_jwt = true
 [functions.scraper]
 verify_jwt = true
 
+[functions.session-analyzer]
+verify_jwt = true
+
 [analytics]
 enabled = false

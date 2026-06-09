@@ -13,6 +13,7 @@ import Logs from "./pages/tools/Logs";
 import Snapshots from "./pages/tools/Snapshots";
 import Scraper from "./pages/tools/Scraper";
 import Analytics from "./pages/tools/Analytics";
+import SessionDoctor from "./pages/tools/SessionDoctor";
 import "./styles/index.css";
 
 const RequireAuth = ({ children }) => {
@@ -67,6 +68,7 @@ const App = () => (
       <Route path="/tools/snapshots" element={<Snapshots />} />
       <Route path="/tools/scraper" element={<Scraper />} />
       <Route path="/tools/analytics" element={<Analytics />} />
+      <Route path="/tools/session-doctor" element={<SessionDoctor />} />
 
       <Route path="/dashboard/*" element={<Navigate to="/home" replace />} />
       <Route path="/project/:projectId/*" element={<Navigate to="/tools/logs" replace />} />

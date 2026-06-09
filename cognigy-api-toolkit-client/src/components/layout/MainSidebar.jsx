@@ -82,6 +82,15 @@ const Icon = ({ name }) => {
           <path d="M7 14l4-4 3 3 5-6" />
         </svg>
       );
+    case "doctor":
+      return (
+        <svg {...common}>
+          <path d="M4.8 2.3A.3.3 0 1 0 5 2.8a.3.3 0 0 0-.2-.5M8 15a6 6 0 0 0 6-6V3.5a1.5 1.5 0 0 0-1.5-1.5H11" />
+          <path d="M8 15a6 6 0 0 1-6-6V3.5A1.5 1.5 0 0 1 3.5 2H5" />
+          <path d="M8 15v3a4 4 0 0 0 8 0v-2" />
+          <circle cx="20" cy="10" r="2" />
+        </svg>
+      );
     case "customers":
       return (
         <svg {...common}>
@@ -204,6 +213,12 @@ const MainSidebar = () => {
             to="/tools/analytics"
             label="Analytics"
             icon="analytics"
+            hasActiveProject={!!activeProjectId}
+          />
+          <ToolItem
+            to="/tools/session-doctor"
+            label="Session Doctor"
+            icon="doctor"
             hasActiveProject={!!activeProjectId}
           />
         </div>
