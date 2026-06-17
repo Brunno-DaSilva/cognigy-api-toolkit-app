@@ -19,7 +19,7 @@
 // Ownership of the api_key is enforced via RLS using the user's JWT before
 // decrypting with service_role.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
       query,
       body,
       transport = "rest",
+      accept,
     } = await req.json();
     if (!api_key_id || !path) {
       return json({ error: "api_key_id and path are required" }, 400);
@@ -113,7 +114,9 @@ Deno.serve(async (req) => {
       parts.push(`apikey=${encodeURIComponent(key_plaintext)}`);
       finalUrl = `${odataUrl.origin}${odataUrl.pathname}?${parts.join("&")}`;
     } else {
-      headers["Accept"] = "application/hal+json";
+      // Logs need HAL+JSON; other endpoints (e.g. knowledgestores) are plain
+      // JSON and 500 on a HAL Accept. Callers can override via `accept`.
+      headers["Accept"] = accept || "application/hal+json";
       headers["X-API-Key"] = key_plaintext;
       const url = new URL(path, base_url);
       if (query) {

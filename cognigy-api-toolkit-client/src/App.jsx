@@ -12,6 +12,7 @@ import Projects from "./pages/admin/Projects";
 import Logs from "./pages/tools/Logs";
 import Snapshots from "./pages/tools/Snapshots";
 import Scraper from "./pages/tools/Scraper";
+import Uploader from "./pages/tools/Uploader";
 import Analytics from "./pages/tools/Analytics";
 import SessionDoctor from "./pages/tools/SessionDoctor";
 import "./styles/index.css";
@@ -67,6 +68,7 @@ const App = () => (
       <Route path="/tools/logs" element={<Logs />} />
       <Route path="/tools/snapshots" element={<Snapshots />} />
       <Route path="/tools/scraper" element={<Scraper />} />
+      <Route path="/tools/uploader" element={<Uploader />} />
       <Route path="/tools/analytics" element={<Analytics />} />
       <Route path="/tools/session-doctor" element={<SessionDoctor />} />
 

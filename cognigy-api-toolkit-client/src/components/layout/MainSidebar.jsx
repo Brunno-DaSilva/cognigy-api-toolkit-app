@@ -75,6 +75,14 @@ const Icon = ({ name }) => {
           <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
         </svg>
       );
+    case "upload":
+      return (
+        <svg {...common}>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <path d="M17 8l-5-5-5 5" />
+          <path d="M12 3v12" />
+        </svg>
+      );
     case "analytics":
       return (
         <svg {...common}>
@@ -207,6 +215,12 @@ const MainSidebar = () => {
             to="/tools/scraper"
             label="Scraper"
             icon="scraper"
+            hasActiveProject={!!activeProjectId}
+          />
+          <ToolItem
+            to="/tools/uploader"
+            label="Uploader"
+            icon="upload"
             hasActiveProject={!!activeProjectId}
           />
           <ToolItem
