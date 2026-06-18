@@ -1870,6 +1870,50 @@ body {
   color: var(--text-muted);
   font-style: italic;
 }
+/* ── Native file inputs (scraper + uploader) ──────────────────────
+   The browser default "Choose File"/"Choose Files" controls look
+   foreign to the design system, so we restyle the field as a soft
+   drop-zone and the ::file-selector-button as a ghost button. */
+.scraper-input input[type="file"] {
+  width: 100%;
+  font-family: "Figtree", sans-serif;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.scraper-input input[type="file"]:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.scraper-input input[type="file"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.scraper-input input[type="file"]::file-selector-button {
+  font-family: "Figtree", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  margin-right: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.scraper-input input[type="file"]:hover:not(:disabled)::file-selector-button {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.scraper-input input[type="file"]:disabled::file-selector-button {
+  cursor: not-allowed;
+}
 .scraper-warning {
   background: rgba(245, 158, 11, 0.08);
   border: 1px solid rgba(245, 158, 11, 0.25);
