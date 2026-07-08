@@ -166,8 +166,8 @@ export const ActiveProjectProvider = ({ children }) => {
       }
       setCustomer(c);
 
-      // Envs + projects + api_keys for this customer
-      const [envsRes, projsRes, keysRes] = await Promise.all([
+      // Envs + projects for this customer. These must succeed.
+      const [envsRes, projsRes] = await Promise.all([
         supabase
           .from("environments")
           .select("id, name, base_url, created_at")
@@ -178,20 +178,34 @@ export const ActiveProjectProvider = ({ children }) => {
           .select("id, name, cognigy_project_id, environment_id, created_at")
           .eq("customer_id", effectiveCustomerId)
           .order("name"),
-        supabase
-          .from("api_keys")
-          .select("id, name, key_last4, created_at")
-          .eq("customer_id", effectiveCustomerId)
-          .order("created_at", { ascending: false }),
       ]);
 
       if (envsRes.error) throw envsRes.error;
       if (projsRes.error) throw projsRes.error;
-      if (keysRes.error) throw keysRes.error;
+
+      // API keys load independently — a failure here (e.g. the `provider`
+      // column not yet migrated) must never blank out the project list. Prefer
+      // the Cognigy-only filter; fall back to all keys if the column is absent.
+      let keys = [];
+      const filteredKeys = await supabase
+        .from("api_keys")
+        .select("id, name, key_last4, created_at")
+        .eq("customer_id", effectiveCustomerId)
+        .eq("provider", "cognigy")
+        .order("created_at", { ascending: false });
+      if (filteredKeys.error) {
+        const allKeys = await supabase
+          .from("api_keys")
+          .select("id, name, key_last4, created_at")
+          .eq("customer_id", effectiveCustomerId)
+          .order("created_at", { ascending: false });
+        keys = allKeys.data ?? [];
+      } else {
+        keys = filteredKeys.data ?? [];
+      }
 
       const envs = envsRes.data ?? [];
       const projs = projsRes.data ?? [];
-      const keys = keysRes.data ?? [];
 
       setEnvironments(envs);
       setProjects(projs);

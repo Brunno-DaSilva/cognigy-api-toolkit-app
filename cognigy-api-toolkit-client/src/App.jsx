@@ -15,6 +15,7 @@ import Scraper from "./pages/tools/Scraper";
 import Uploader from "./pages/tools/Uploader";
 import Analytics from "./pages/tools/Analytics";
 import SessionDoctor from "./pages/tools/SessionDoctor";
+import KAIConnector from "./pages/tools/KAIConnector";
 import "./styles/index.css";
 
 const RequireAuth = ({ children }) => {
@@ -71,6 +72,7 @@ const App = () => (
       <Route path="/tools/uploader" element={<Uploader />} />
       <Route path="/tools/analytics" element={<Analytics />} />
       <Route path="/tools/session-doctor" element={<SessionDoctor />} />
+      <Route path="/tools/kai-connector" element={<KAIConnector />} />
 
       <Route path="/dashboard/*" element={<Navigate to="/home" replace />} />
       <Route path="/project/:projectId/*" element={<Navigate to="/tools/logs" replace />} />

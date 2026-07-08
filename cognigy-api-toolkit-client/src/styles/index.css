@@ -572,7 +572,17 @@ body {
   color: #60a5fa;
 }
 .terminal-line--default {
-  color: #4b5563;
+  color: #c3c9d4;
+}
+/* Aliases used by KAI Connector's log lines (dark terminal background). */
+.terminal-line--success {
+  color: #10b981;
+}
+.terminal-line--error {
+  color: #ef4444;
+}
+.terminal-line--warn {
+  color: #f59e0b;
 }
 
 /* ── Breakdown ──────────────────────────────────────────────── */
@@ -1438,7 +1448,7 @@ body {
 }
 .entity-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1.5px dashed var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px 20px;
@@ -1448,11 +1458,22 @@ body {
   position: relative;
   text-decoration: none;
   color: inherit;
-  transition: transform 0.12s, box-shadow 0.15s;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.15s, border-color 0.15s, background 0.15s;
 }
 .entity-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  border-color: var(--brand);
+  background: var(--brand-wash-soft);
+}
+/* Stretched link/button — makes the whole card clickable while the action
+   icons (higher z-index) stay clickable on top. */
+.entity-card-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
 }
 .entity-card-name {
   font-weight: 700;
@@ -1486,6 +1507,7 @@ body {
   display: flex;
   gap: 4px;
   opacity: 0;
+  z-index: 2;
   transition: opacity 0.15s;
 }
 .entity-card:hover .entity-card-actions {
@@ -2491,4 +2513,73 @@ body {
 }
 .session-doctor-ask .input {
   flex: 1;
+}
+
+/* Hide the page scrollbar only on KAI Connector (content still scrolls via
+   wheel/trackpad/keyboard). The class is toggled on the scroll container by the
+   KAI page while it's mounted, so other tools are untouched. */
+.main-content.kai-hide-scroll {
+  scrollbar-width: none;            /* Firefox */
+}
+.main-content.kai-hide-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;                        /* Chrome / Safari / Edge */
+}
+
+/* --------------------------------------------------------------------------
+   KAI Connector — Material-style tabs
+   A horizontal tablist with a bottom rule; the active tab is marked by a
+   brand-coloured underline indicator that slides under the label.
+   -------------------------------------------------------------------------- */
+.kai-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin: 8px 0 20px;
+  overflow-x: auto;
+}
+.kai-tab {
+  position: relative;
+  appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  padding: 12px 18px;
+  margin-bottom: -1px;            /* sit the indicator on top of the container rule */
+  border-bottom: 2px solid transparent;
+  border-top-left-radius: var(--radius-sm);
+  border-top-right-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+.kai-tab:hover:not(.kai-tab--active) {
+  color: var(--text);
+  background: var(--brand-wash-soft);
+}
+.kai-tab:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+.kai-tab--active {
+  color: var(--brand-strong);
+  border-bottom-color: var(--brand);
+}
+.kai-tab-badge {
+  display: inline-block;
+  margin-left: 8px;
+  min-width: 20px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  background: var(--brand);
+  border-radius: 999px;
 }

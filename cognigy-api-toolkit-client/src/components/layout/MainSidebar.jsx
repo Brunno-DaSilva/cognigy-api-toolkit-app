@@ -99,6 +99,13 @@ const Icon = ({ name }) => {
           <circle cx="20" cy="10" r="2" />
         </svg>
       );
+    case "kai":
+      return (
+        <svg {...common}>
+          <path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3 3 3 0 0 0 0 6 3 3 0 0 0 3 3v1a3 3 0 0 0 6 0v-1a3 3 0 0 0 3-3 3 3 0 0 0 0-6 3 3 0 0 0-3-3V5a3 3 0 0 0-3-3z" />
+          <path d="M12 8v8M8.5 12h7" />
+        </svg>
+      );
     case "customers":
       return (
         <svg {...common}>
@@ -233,6 +240,12 @@ const MainSidebar = () => {
             to="/tools/session-doctor"
             label="Session Doctor"
             icon="doctor"
+            hasActiveProject={!!activeProjectId}
+          />
+          <ToolItem
+            to="/tools/kai-connector"
+            label="KAI Connector"
+            icon="kai"
             hasActiveProject={!!activeProjectId}
           />
         </div>

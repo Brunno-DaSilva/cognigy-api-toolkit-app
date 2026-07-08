@@ -41,5 +41,16 @@ verify_jwt = true
 [functions.knowledge-upload]
 verify_jwt = true
 
+[functions.kai-evaluator]
+verify_jwt = true
+
+[functions.kai-sync-worker]
+verify_jwt = true
+
+# Test-only stand-in for a customer source system. Public (no JWT) so the sync
+# worker can fetch it as a plain external URL. Serves fixed mock data only.
+[functions.kai-mock-source]
+verify_jwt = false
+
 [analytics]
 enabled = false

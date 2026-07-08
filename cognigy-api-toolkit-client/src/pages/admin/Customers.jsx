@@ -84,7 +84,7 @@ const Customers = () => {
             <div key={c.id} className="entity-card">
               <Link
                 to={`/admin/customers/${c.id}`}
-                className="entity-card-name"
+                className="entity-card-name entity-card-link"
                 style={{ textDecoration: "none", color: "inherit" }}
               >
                 {c.name}

@@ -282,7 +282,7 @@ const CustomerDetail = () => {
             <div key={p.id} className="entity-card">
               <button
                 type="button"
-                className="entity-card-name"
+                className="entity-card-name entity-card-link"
                 onClick={() => openProject(p.id)}
                 style={{
                   background: "none",
