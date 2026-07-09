@@ -166,7 +166,15 @@ const Analytics = ({ project, customer, apiKeys }) => {
             <select
               className="select"
               value={endpoint}
-              onChange={(e) => updateForm({ endpoint: e.target.value })}
+              onChange={(e) => {
+                const nextEndpoint = e.target.value;
+                // Sessions use `startedAt`; Analytics/Conversations use `timestamp`.
+                updateForm({
+                  endpoint: nextEndpoint,
+                  dateField:
+                    nextEndpoint === "/Sessions" ? "startedAt" : "timestamp",
+                });
+              }}
             >
               {ANALYTICS_ENDPOINTS.map((ep) => (
                 <option key={ep.value} value={ep.value}>
@@ -176,11 +184,14 @@ const Analytics = ({ project, customer, apiKeys }) => {
             </select>
           </FormField>
           <FormField label="Date field">
-            <input
-              className="input"
+            <select
+              className="select"
               value={dateField}
               onChange={(e) => updateForm({ dateField: e.target.value })}
-            />
+            >
+              <option value="timestamp">timestamp</option>
+              <option value="startedAt">startedAt</option>
+            </select>
           </FormField>
         </div>
 
