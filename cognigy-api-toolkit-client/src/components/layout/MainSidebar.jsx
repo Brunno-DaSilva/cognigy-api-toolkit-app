@@ -61,6 +61,13 @@ const Icon = ({ name }) => {
           <path d="M4 6h16M4 12h10M4 18h16" />
         </svg>
       );
+    case "flowsearch":
+      return (
+        <svg {...common}>
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+      );
     case "snapshots":
       return (
         <svg {...common}>
@@ -203,6 +210,12 @@ const MainSidebar = () => {
             to="/tools/logs"
             label="Get Logs"
             icon="logs"
+            hasActiveProject={!!activeProjectId}
+          />
+          <ToolItem
+            to="/tools/flow-search"
+            label="Flow Search"
+            icon="flowsearch"
             hasActiveProject={!!activeProjectId}
           />
           <ToolItem

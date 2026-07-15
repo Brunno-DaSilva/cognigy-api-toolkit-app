@@ -10,6 +10,7 @@ import Customers from "./pages/admin/Customers";
 import CustomerDetail from "./pages/admin/CustomerDetail";
 import Projects from "./pages/admin/Projects";
 import Logs from "./pages/tools/Logs";
+import FlowSearch from "./pages/tools/FlowSearch";
 import Snapshots from "./pages/tools/Snapshots";
 import Scraper from "./pages/tools/Scraper";
 import Uploader from "./pages/tools/Uploader";
@@ -66,6 +67,7 @@ const App = () => (
       <Route path="/admin/projects" element={<Projects />} />
 
       <Route path="/tools/logs" element={<Logs />} />
+      <Route path="/tools/flow-search" element={<FlowSearch />} />
       <Route path="/tools/snapshots" element={<Snapshots />} />
       <Route path="/tools/scraper" element={<Scraper />} />
       <Route path="/tools/uploader" element={<Uploader />} />
