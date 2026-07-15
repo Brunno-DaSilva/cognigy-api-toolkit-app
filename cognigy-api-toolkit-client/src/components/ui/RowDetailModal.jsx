@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Modal from "../../ui/Modal";
+import Modal from "./Modal";
 
 const isIsoDate = (v) =>
   typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v);

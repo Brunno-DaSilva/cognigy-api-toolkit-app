@@ -4,7 +4,7 @@ import Card from "../../ui/Card";
 import FormField from "../../ui/FormField";
 import LogFilters from "./LogFilters";
 import FetchProgress from "./FetchProgress";
-import TypeBreakdown from "./TypeBreakdown";
+import LogBreakdown from "./LogBreakdown";
 import ActionBar from "./ActionBar";
 import useFetchLogs from "../../../hooks/useFetchLogs";
 import { DEFAULT_CFG } from "../../../constants";
@@ -46,11 +46,6 @@ const GetLogs = ({ project, customer, apiKeys }) => {
       types,
     });
   };
-
-  const typeCounts = logs.reduce((acc, l) => {
-    acc[l.type] = (acc[l.type] || 0) + 1;
-    return acc;
-  }, {});
 
   return (
     <div className="tool-layout">
@@ -131,7 +126,7 @@ const GetLogs = ({ project, customer, apiKeys }) => {
       {(running || done) && (
         <FetchProgress progress={progress} terminal={terminal} />
       )}
-      {done && logs.length > 0 && <TypeBreakdown counts={typeCounts} />}
+      {done && logs.length > 0 && <LogBreakdown logs={logs} />}
     </div>
   );
 };

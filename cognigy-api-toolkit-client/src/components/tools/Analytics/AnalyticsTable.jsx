@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ANALYTICS_ID_COLUMNS } from "../../../constants";
-import RowDetailModal from "./RowDetailModal";
+import RowDetailModal from "../../ui/RowDetailModal";
 
 const MAX_ROWS = 500;
 
