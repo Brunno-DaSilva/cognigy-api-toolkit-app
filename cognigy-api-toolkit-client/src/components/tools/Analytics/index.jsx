@@ -8,7 +8,14 @@ import AnalyticsTable from "./AnalyticsTable";
 import { useAnalyticsCache } from "../../../context/AnalyticsCacheContext";
 import { ANALYTICS_ENDPOINTS } from "../../../constants";
 
-const exportCSV = (rows, columns, endpoint) => {
+// Turn a customer name into a filename-safe slug ("Acme Corp" -> "acme-corp").
+const slugify = (s) =>
+  (s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const exportCSV = (rows, columns, endpoint, customerName) => {
   if (!rows.length) return;
   const esc = (s) => {
     if (s.includes(",") || s.includes('"') || s.includes("\n")) {
@@ -31,9 +38,12 @@ const exportCSV = (rows, columns, endpoint) => {
   const blob = new Blob([lines.join("\n")], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `cognigy-${endpoint.replace("/", "").toLowerCase()}-${
-    new Date().toISOString().split("T")[0]
-  }.csv`;
+  const customerSlug = slugify(customerName);
+  const endpointSlug = endpoint.replace("/", "").toLowerCase();
+  const date = new Date().toISOString().split("T")[0];
+  a.download = customerSlug
+    ? `cognigy-${customerSlug}-${endpointSlug}-${date}.csv`
+    : `cognigy-${endpointSlug}-${date}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 };
@@ -271,7 +281,7 @@ const Analytics = ({ project, customer, apiKeys }) => {
             />
             <button
               className="btn-ghost"
-              onClick={() => exportCSV(rows, columns, endpoint)}
+              onClick={() => exportCSV(rows, columns, endpoint, customer?.name)}
               disabled={!rows.length}
             >
               Export CSV
