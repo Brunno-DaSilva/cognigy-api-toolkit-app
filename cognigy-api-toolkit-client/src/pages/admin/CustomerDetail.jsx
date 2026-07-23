@@ -48,7 +48,7 @@ const CustomerDetail = () => {
     const [c, p, k, e] = await Promise.all([
       supabase
         .from("customers")
-        .select("id, name, base_url, created_at")
+        .select("id, name, base_url, platform, created_at")
         .eq("id", customerId)
         .maybeSingle(),
       supabase

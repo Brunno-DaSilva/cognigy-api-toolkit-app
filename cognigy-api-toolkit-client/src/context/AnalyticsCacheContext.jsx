@@ -22,13 +22,31 @@ const initialFormState = () => ({
   endDate: toLocalDatetime(new Date()),
 });
 
-const buildFilter = ({ cognigyProjectId, dateField, startDate, endDate }) => {
+// OData datetime literals differ by platform. Cognigy expects a quoted literal
+// (`timestamp ge '2026-07-22T00:00:00.000Z'`); CXone expects an unquoted
+// DateTimeOffset at second precision (`timestamp ge 2026-07-22T00:00:00Z`).
+// projectId stays a quoted string on both.
+const formatDateLiteral = (value, platform) => {
+  const iso = new Date(value).toISOString();
+  if (platform === "cxone") {
+    return iso.replace(/\.\d{3}Z$/, "Z");
+  }
+  return `'${iso}'`;
+};
+
+const buildFilter = ({
+  cognigyProjectId,
+  dateField,
+  startDate,
+  endDate,
+  platform = "cognigy",
+}) => {
   const parts = [`projectId eq '${cognigyProjectId}'`];
   if (startDate) {
-    parts.push(`${dateField} ge '${new Date(startDate).toISOString()}'`);
+    parts.push(`${dateField} ge ${formatDateLiteral(startDate, platform)}`);
   }
   if (endDate) {
-    parts.push(`${dateField} le '${new Date(endDate).toISOString()}'`);
+    parts.push(`${dateField} le ${formatDateLiteral(endDate, platform)}`);
   }
   return parts.join(" and ");
 };
@@ -85,6 +103,7 @@ export const AnalyticsCacheProvider = ({ children }) => {
       dateField,
       startDate,
       endDate,
+      platform = "cognigy",
     }) => {
       reset();
       setRunning(true);
@@ -94,6 +113,7 @@ export const AnalyticsCacheProvider = ({ children }) => {
           dateField,
           startDate,
           endDate,
+          platform,
         });
 
         const { data, error: invokeError } = await supabase.functions.invoke(

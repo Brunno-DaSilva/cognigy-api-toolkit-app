@@ -70,6 +70,16 @@ const flowRefOf = (f) =>
   f?._id || idFromSelfLink(f) || f?.id || f?.reference || f?.referenceId || null;
 const flowNameOf = (f) => f?.name || f?.flowName || flowRefOf(f) || "Unnamed flow";
 
+// The Cognigy project (agent) a flow belongs to — used to scope the list to the
+// selected project, since the list surface can return flows across projects.
+const flowProjectId = (f) => f?.projectId ?? f?.project ?? f?.projectReference ?? null;
+const belongsToProject = (f, cognigyProjectId) => {
+  const pid = flowProjectId(f);
+  // If the flow doesn't carry a project id, don't exclude it (avoid dropping
+  // everything if the shape is unexpected — better to over-include than blank).
+  return !pid || String(pid) === String(cognigyProjectId);
+};
+
 async function fetchFlowList({ apiKeyId, projectId, cognigyProjectId }) {
   const all = [];
   const seen = new Set();
@@ -99,7 +109,11 @@ async function fetchFlowList({ apiKeyId, projectId, cognigyProjectId }) {
     if (items.length < PAGE || added === 0) break;
     await new Promise((r) => setTimeout(r, 100));
   }
-  return all;
+
+  // Scope to the selected Cognigy project — the list surface can return flows
+  // belonging to other projects on the same instance.
+  const scoped = all.filter((f) => belongsToProject(f, cognigyProjectId));
+  return scoped;
 }
 
 async function fetchChart({ apiKeyId, projectId, flowRef }) {
@@ -130,7 +144,9 @@ export const FlowIndexProvider = ({ children }) => {
   const cacheRef = useRef(new Map()); // key -> { records, facets, indexedAt, failures }
 
   const runIndex = useCallback(
-    async (key) => {
+    // All fetch inputs are passed explicitly (not read from closure) so a run
+    // can never use a project id that's out of sync with the selection.
+    async (key, { apiKeyId, projectId, cognigyProjectId }) => {
       const myReq = ++reqId.current;
       // Clear stale results and switch to the indexing state immediately.
       setState({ ...EMPTY, indexing: true });
@@ -185,7 +201,7 @@ export const FlowIndexProvider = ({ children }) => {
         setState((s) => ({ ...s, indexing: false, error: e.message }));
       }
     },
-    [apiKeyId, projectId, cognigyProjectId],
+    [],
   );
 
   // Index is bound to the PROJECT SELECTION (per customer): the cache key is
@@ -197,18 +213,29 @@ export const FlowIndexProvider = ({ children }) => {
   // already in the cache loads instantly. Nothing indexes without a selected
   // project. (A usable API key + Cognigy project id are also required to fetch.)
   useEffect(() => {
-    // No project selected → clear. Selection present but key/ids not resolved
-    // yet (e.g. api_keys still loading) → wait for a later run, don't clear.
-    if (!activeCustomerId || !activeProjectId) {
+    // Nothing selected → clear.
+    if (!activeProjectId) {
       reqId.current++;
       keyRef.current = null;
       setState(EMPTY);
       return;
     }
-    if (!apiKeyId || !cognigyProjectId) return;
+    // Wait until the RESOLVED project record matches the current selection.
+    // During a switch, `project` (and its cognigyProjectId) lags activeProjectId
+    // by a render; indexing before they agree would fetch the previous
+    // project's flows under the new key — the exact bug we're fixing. Also wait
+    // for a usable API key + Cognigy id.
+    if (
+      !project ||
+      project.id !== activeProjectId ||
+      !apiKeyId ||
+      !cognigyProjectId
+    ) {
+      return;
+    }
 
-    const key = `${activeCustomerId}|${activeProjectId}`;
-    if (keyRef.current === key) return; // same selection — leave the run alone
+    const key = `${activeCustomerId}|${project.id}`;
+    if (keyRef.current === key) return; // this selection already handled
     keyRef.current = key;
 
     const cached = cacheRef.current.get(key);
@@ -217,18 +244,18 @@ export const FlowIndexProvider = ({ children }) => {
       setState({ ...EMPTY, ...cached, indexing: false });
       return;
     }
-    runIndex(key);
-  }, [activeCustomerId, activeProjectId, apiKeyId, cognigyProjectId, runIndex]);
+    runIndex(key, { apiKeyId, projectId: project.id, cognigyProjectId });
+  }, [activeCustomerId, activeProjectId, project, apiKeyId, cognigyProjectId, runIndex]);
 
   // Force a fresh re-index of the current selection (ignores the cache).
   const reindex = useCallback(() => {
-    if (!activeCustomerId || !activeProjectId || !apiKeyId || !cognigyProjectId)
-      return;
-    const key = `${activeCustomerId}|${activeProjectId}`;
+    if (!project || project.id !== activeProjectId) return;
+    if (!apiKeyId || !cognigyProjectId) return;
+    const key = `${activeCustomerId}|${project.id}`;
     cacheRef.current.delete(key);
     keyRef.current = key;
-    runIndex(key);
-  }, [activeCustomerId, activeProjectId, apiKeyId, cognigyProjectId, runIndex]);
+    runIndex(key, { apiKeyId, projectId: project.id, cognigyProjectId });
+  }, [activeCustomerId, activeProjectId, project, apiKeyId, cognigyProjectId, runIndex]);
 
   const value = useMemo(
     () => ({

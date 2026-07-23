@@ -98,7 +98,7 @@ export const ActiveProjectProvider = ({ children }) => {
     }
     const { data, error: err } = await supabase
       .from("customers")
-      .select("id, name, base_url, created_at")
+      .select("id, name, base_url, platform, created_at")
       .order("name");
     if (err) {
       setError(err.message);

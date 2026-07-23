@@ -2,8 +2,15 @@
 // Proxies Cognigy.AI API calls so the raw API key never touches the browser.
 //
 // Supports two transports:
-//   - "rest"  (default): hits api-app-{region}.cognigy.ai with X-API-Key header
-//   - "odata":           hits odata-app-{region}.cognigy.ai/v2.4 with ?apikey=... query param
+//   - "rest"  (default): hits the customer base_url with X-API-Key header
+//   - "odata":           hits the OData host /v2.4 with the API key
+//
+// The OData host and API-key placement depend on the customer's platform
+// (returned by get_api_key_plaintext):
+//   - "cognigy": base api-app-{region}.cognigy.ai -> odata-app-{region}.cognigy.ai,
+//                key as ?apikey=... query param
+//   - "cxone":   base cognigy-api-{region}.nicecxone.com ->
+//                cognigy-odata-{region}.nicecxone.com, key as `apikey` header
 //
 // Request body (POST):
 //   {
@@ -85,7 +92,7 @@ Deno.serve(async (req) => {
     if (keyErr || !keyRows || keyRows.length === 0) {
       return json({ error: "decrypt failed" }, 500);
     }
-    const { key_plaintext, base_url } = keyRows[0];
+    const { key_plaintext, base_url, platform = "cognigy" } = keyRows[0];
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -98,7 +105,7 @@ Deno.serve(async (req) => {
       // OData server rejects both with a 400. Build the query string manually
       // so `$` stays literal and `encodeURIComponent` gives us %20 for spaces.
       headers["Accept"] = "application/json";
-      const odataUrl = buildOdataUrl(base_url, path);
+      const odataUrl = buildOdataUrl(base_url, path, platform);
       const parts: string[] = [];
       if (query) {
         for (const [k, v] of Object.entries(query)) {
@@ -111,8 +118,16 @@ Deno.serve(async (req) => {
           }
         }
       }
-      parts.push(`apikey=${encodeURIComponent(key_plaintext)}`);
-      finalUrl = `${odataUrl.origin}${odataUrl.pathname}?${parts.join("&")}`;
+      // Cognigy expects the key as a query param; CXone expects an `apikey`
+      // header. Placing it in the wrong slot yields a 401 even with a valid key.
+      if (platform === "cxone") {
+        headers["apikey"] = key_plaintext;
+      } else {
+        parts.push(`apikey=${encodeURIComponent(key_plaintext)}`);
+      }
+      finalUrl = parts.length
+        ? `${odataUrl.origin}${odataUrl.pathname}?${parts.join("&")}`
+        : `${odataUrl.origin}${odataUrl.pathname}`;
     } else {
       // Logs need HAL+JSON; other endpoints (e.g. knowledgestores) are plain
       // JSON and 500 on a HAL Accept. Callers can override via `accept`.
@@ -184,13 +199,20 @@ function json(body: unknown, status = 200) {
 }
 
 // Builds the full OData URL from the REST base + endpoint path.
-// REST base e.g. https://api-app-us.cognigy.ai is rewritten to
-// https://odata-app-us.cognigy.ai/v2.4, then the endpoint is appended.
-// We construct manually because `new URL("/Analytics", base)` would drop the
-// /v2.4 path segment.
-function buildOdataUrl(restBaseUrl: string, endpoint: string): URL {
+// The API host is rewritten to the OData host per platform, then the endpoint
+// is appended under /v2.4. We construct manually because
+// `new URL("/Analytics", base)` would drop the /v2.4 path segment.
+//   cognigy: api-app-us.cognigy.ai        -> odata-app-us.cognigy.ai
+//   cxone:   cognigy-api-na1.nicecxone.com -> cognigy-odata-na1.nicecxone.com
+function buildOdataUrl(
+  restBaseUrl: string,
+  endpoint: string,
+  platform: string,
+): URL {
   const u = new URL(restBaseUrl);
-  u.hostname = u.hostname.replace(/^api-app-/, "odata-app-");
+  u.hostname = platform === "cxone"
+    ? u.hostname.replace(/^cognigy-api-/, "cognigy-odata-")
+    : u.hostname.replace(/^api-app-/, "odata-app-");
   const ep = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
   return new URL(`https://${u.hostname}/v2.4${ep}`);
 }

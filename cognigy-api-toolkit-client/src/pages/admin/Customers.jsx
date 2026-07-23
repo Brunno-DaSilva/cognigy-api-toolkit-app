@@ -18,7 +18,7 @@ const Customers = () => {
     setLoading(true);
     const { data, error: err } = await supabase
       .from("customers")
-      .select("id, name, base_url, created_at")
+      .select("id, name, base_url, platform, created_at")
       .order("created_at", { ascending: false });
     if (err) setError(err.message);
     else setRows(data ?? []);

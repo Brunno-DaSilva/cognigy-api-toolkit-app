@@ -87,6 +87,7 @@ const Analytics = ({ project, customer, apiKeys }) => {
       dateField,
       startDate,
       endDate,
+      platform: customer?.platform ?? "cognigy",
     });
   };
 
