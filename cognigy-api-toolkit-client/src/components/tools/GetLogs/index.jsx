@@ -121,7 +121,7 @@ const GetLogs = ({ project, customer, apiKeys }) => {
         done={done}
         logCount={logs.length}
         onFetch={handleFetch}
-        onDownload={() => downloadJSON(logs)}
+        onDownload={() => downloadJSON(logs, customer?.name)}
       />
       {(running || done) && (
         <FetchProgress progress={progress} terminal={terminal} />

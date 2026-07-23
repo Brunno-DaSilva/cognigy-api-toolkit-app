@@ -13,7 +13,7 @@ export const getYesterday = () => {
 export const formatNumber = (n) =>
   typeof n === "number" ? n.toLocaleString() : n ?? "—";
 
-export const downloadJSON = (logs) => {
+export const downloadJSON = (logs, customerName) => {
   const blob = new Blob(
     [JSON.stringify({ total: logs.length, exportedAt: new Date().toISOString(), logs }, null, 2)],
     { type: "application/json" }
@@ -21,7 +21,11 @@ export const downloadJSON = (logs) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `cognigy-logs-${new Date().toISOString().split("T")[0]}.json`;
+  const customer = slugify(customerName);
+  const date = new Date().toISOString().split("T")[0];
+  a.download = customer
+    ? `cognigy-${customer}-logs-${date}.json`
+    : `cognigy-logs-${date}.json`;
   a.click();
   URL.revokeObjectURL(url);
 };

@@ -7,13 +7,8 @@ import ViewManager from "./ViewManager";
 import AnalyticsTable from "./AnalyticsTable";
 import { useAnalyticsCache } from "../../../context/AnalyticsCacheContext";
 import { ANALYTICS_ENDPOINTS } from "../../../constants";
-
-// Turn a customer name into a filename-safe slug ("Acme Corp" -> "acme-corp").
-const slugify = (s) =>
-  (s || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+import { slugify } from "../../../utils";
+import DownloadIcon from "../../ui/DownloadIcon";
 
 const exportCSV = (rows, columns, endpoint, customerName) => {
   if (!rows.length) return;
@@ -280,11 +275,12 @@ const Analytics = ({ project, customer, apiKeys }) => {
               onChange={(e) => setSearch(e.target.value)}
             />
             <button
-              className="btn-ghost"
+              className="btn btn--success"
               onClick={() => exportCSV(rows, columns, endpoint, customer?.name)}
               disabled={!rows.length}
             >
-              Export CSV
+              <DownloadIcon />
+              Export {rows.length.toLocaleString()} rows
             </button>
           </div>
           <AnalyticsTable
