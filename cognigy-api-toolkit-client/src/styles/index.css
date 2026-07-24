@@ -605,6 +605,26 @@ body {
   color: var(--text-muted);
 }
 
+/* Uploader knowledge-store option — store name over its full Knowledge ID.
+   Rendered as a JSX label inside the shared Select (trigger + option list). */
+.uploader-store-option {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.uploader-store-option-name,
+.uploader-store-option-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.uploader-store-option-id {
+  font-size: 11px;
+  color: var(--text-subtle);
+  font-family: "Figtree", ui-monospace, Consolas, monospace;
+  margin-top: 1px;
+}
+
 /* ── Type chips ─────────────────────────────────────────────── */
 .chip-group {
   display: flex;

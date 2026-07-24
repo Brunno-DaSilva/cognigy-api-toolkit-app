@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
 import FormField from "../../ui/FormField";
 import Select from "../../ui/Select";
 import { UPLOAD_ACCEPT, fileTypeFor } from "./fileTypes";
@@ -10,14 +9,8 @@ const formatBytes = (n) => {
   return `${(n / (1024 * 1024)).toFixed(2)} MB`;
 };
 
-const last4 = (id) => (typeof id === "string" ? id.slice(-4) : "????");
-
 const InputPanel = ({
-  customer,
-  project,
-  apiKeys,
   apiKeyId,
-  setApiKeyId,
   stores,
   storesLoading,
   storesError,
@@ -71,37 +64,6 @@ const InputPanel = ({
     <div className="card scraper-input">
       <div className="card-title">Target</div>
 
-      <div className="scraper-row">
-        <FormField label="Customer">
-          <input className="input" value={customer?.name ?? ""} disabled />
-        </FormField>
-        <FormField label="Project">
-          <input className="input" value={project.name} disabled />
-        </FormField>
-      </div>
-
-      <FormField label="API key" required>
-        {apiKeys.length === 0 ? (
-          <div className="row-list-empty">
-            No keys for this customer.{" "}
-            <Link className="btn-link" to={`/admin/customers/${customer?.id}`}>
-              Add one →
-            </Link>
-          </div>
-        ) : (
-          <Select
-            className="select"
-            value={apiKeyId}
-            onChange={(v) => setApiKeyId(v)}
-            disabled={disabled}
-            options={apiKeys.map((k) => ({
-              value: k.id,
-              label: `${k.name} ···· ${k.key_last4}`,
-            }))}
-          />
-        )}
-      </FormField>
-
       <FormField label="Knowledge store" required>
         {storesLoading ? (
           <div className="scraper-file-note">
@@ -131,7 +93,14 @@ const InputPanel = ({
                 { value: "", label: "Select a store…" },
                 ...stores.map((s) => ({
                   value: s._id,
-                  label: `${s.name} ···· ${last4(s._id)}`,
+                  label: (
+                    <span className="uploader-store-option">
+                      <span className="uploader-store-option-name">
+                        {s.name}
+                      </span>
+                      <span className="uploader-store-option-id">{s._id}</span>
+                    </span>
+                  ),
                 })),
               ]}
             />
