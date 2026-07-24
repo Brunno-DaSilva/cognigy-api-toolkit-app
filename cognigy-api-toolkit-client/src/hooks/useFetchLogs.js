@@ -47,7 +47,7 @@ const useFetchLogs = () => {
       let page = 0;
       let total = null;
 
-      addLine(`Starting — project ${cognigyProjectId}`, "info");
+      addLine(`Starting — project ${cognigyProjectId}`, "id");
       addLine(
         `Types: ${types.length ? types.join(", ") : "all"} | limit: 100/page (via cognigy-proxy)`,
         "info"

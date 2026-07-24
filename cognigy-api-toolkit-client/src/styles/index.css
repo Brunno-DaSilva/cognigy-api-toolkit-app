@@ -583,6 +583,183 @@ body {
   color: #4b5563;
 }
 
+/* ── Get Logs — Search card (merged Target + Filters) ───────── */
+.gl-date-block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.gl-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gl-presets-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-right: 2px;
+}
+.gl-preset-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: "Figtree", sans-serif;
+}
+.gl-preset-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+.gl-preset-btn--active {
+  background: var(--brand-wash-strong);
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+/* Thin divider between the date / log-type / fields rows */
+.gl-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 18px 0;
+}
+
+/* Log-type pills — filled purple when selected, outline/gray otherwise */
+.gl-type-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.gl-type-pill {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: "Figtree", sans-serif;
+}
+.gl-type-pill:hover {
+  border-color: var(--brand);
+  color: var(--text);
+}
+.gl-type-pill--active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--brand-rgb), 0.3);
+}
+.gl-type-pill--active:hover {
+  color: #fff;
+}
+
+.gl-search-actions {
+  margin-top: 20px;
+}
+
+/* ── Get Logs — fetch-log terminal (its own scheme; the shared
+   ui/Terminal used by other tools is untouched) ───────────────── */
+.gl-terminal {
+  background: #fffff8;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  height: 180px;
+  overflow-y: auto;
+  font-family: "Figtree", monospace;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.gl-terminal::-webkit-scrollbar {
+  width: 4px;
+}
+.gl-terminal::-webkit-scrollbar-thumb {
+  background: rgba(var(--brand-rgb), 0.3);
+  border-radius: 2px;
+}
+.gl-term-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* Info / config lines (Types, proxy info) — purple */
+.gl-term-line--info {
+  color: #7e14ff;
+}
+/* Regular / in-progress lines (Page X — fetching…) — gray, faded */
+.gl-term-line--default {
+  color: #6b7280;
+  opacity: 0.75;
+}
+/* Successful page-fetch lines — green */
+.gl-term-line--ok {
+  color: #0e9f6e;
+}
+/* IDs / identifiers (project ID, etc.) — muted dark tone */
+.gl-term-line--id {
+  color: #4b3a63;
+}
+/* Errors */
+.gl-term-line--err {
+  color: #ef4444;
+}
+
+/* Color legend beneath the terminal */
+.gl-term-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+.gl-term-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.gl-term-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* Dark mode — warm-black bg, brightened purple/gray/green/id for contrast */
+[data-theme="dark"] .gl-terminal {
+  background: #1a1420;
+  border-color: var(--border);
+}
+[data-theme="dark"] .gl-term-line--info {
+  color: #c199ff;
+}
+[data-theme="dark"] .gl-term-line--default {
+  color: #a8a5b8;
+  opacity: 0.7;
+}
+[data-theme="dark"] .gl-term-line--ok {
+  color: #34d399;
+}
+[data-theme="dark"] .gl-term-line--id {
+  color: #9a8cb8;
+}
+[data-theme="dark"] .gl-term-line--err {
+  color: #f87171;
+}
+
 /* ── Breakdown ──────────────────────────────────────────────── */
 .breakdown-list {
   display: flex;
