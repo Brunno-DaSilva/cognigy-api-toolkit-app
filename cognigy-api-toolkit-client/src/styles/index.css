@@ -2117,6 +2117,74 @@ body {
   flex-shrink: 0;
 }
 
+/* ── All Projects — grouped by customer ─────────────────────── */
+.proj-group + .proj-group {
+  margin-top: 28px;
+}
+.proj-group-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+/* Customer name — dark (var(--text) is #0f1117 in light), not purple */
+.proj-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  white-space: nowrap;
+  margin: 0;
+}
+.proj-group-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.proj-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.proj-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  /* Reuse the app's purple hover + 0.15s timing (see .app-select-trigger,
+     .gl-preset-btn) so it fades in smoothly instead of switching instantly. */
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.proj-row:hover {
+  border-color: var(--brand);
+  background: rgba(var(--brand-rgb), 0.06);
+}
+.proj-row-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.proj-row-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+.proj-row-id {
+  font-family: "Figtree", ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 /* ── Modal ──────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { useActiveProject } from "../../context/ActiveProjectContext";
@@ -38,6 +38,18 @@ const Projects = () => {
       )
     : rows;
 
+  // Group projects by customer, preserving the order in which each customer
+  // first appears in the (created_at desc) list.
+  const groups = useMemo(() => {
+    const map = new Map();
+    for (const p of filtered) {
+      const key = p.customer?.id ?? "__none__";
+      if (!map.has(key)) map.set(key, { customer: p.customer, projects: [] });
+      map.get(key).projects.push(p);
+    }
+    return [...map.values()];
+  }, [filtered]);
+
   const open = (id) => {
     setActiveProjectId(id);
     navigate("/tools/logs");
@@ -61,7 +73,7 @@ const Projects = () => {
         placeholder="Search by project, customer, or Cognigy ID…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        style={{ marginBottom: 16, maxWidth: 380 }}
+        style={{ marginBottom: 16, width: "100%", maxWidth: 460 }}
       />
 
       {loading ? (
@@ -82,39 +94,29 @@ const Projects = () => {
           </div>
         </div>
       ) : (
-        <div className="row-list">
-          {filtered.map((p) => (
-            <div key={p.id} className="row-item">
-              <button
-                type="button"
-                onClick={() => open(p.id)}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  cursor: "pointer",
-                  textAlign: "left",
-                  minWidth: 0,
-                  flex: 1,
-                  fontFamily: "inherit",
-                  color: "inherit",
-                }}
-              >
-                <div className="row-item-name">{p.name}</div>
-                <div className="row-item-meta">
-                  {p.customer?.name || "—"} • {p.cognigy_project_id}
-                </div>
-              </button>
-              <div className="row-item-actions">
-                <Link
-                  className="btn-ghost"
-                  to={`/admin/customers/${p.customer?.id}`}
-                  style={{ textDecoration: "none" }}
-                >
-                  Customer
-                </Link>
+        <div className="proj-groups">
+          {groups.map((g) => (
+            <div key={g.customer?.id ?? "__none__"} className="proj-group">
+              <div className="proj-group-header">
+                <h4 className="proj-group-title">
+                  {g.customer?.name || "No customer"}
+                </h4>
+                <span className="proj-group-rule" />
+              </div>
+              <div className="proj-rows">
+                {g.projects.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="proj-row"
+                    onClick={() => open(p.id)}
+                  >
+                    <div className="proj-row-main">
+                      <div className="proj-row-name">{p.name}</div>
+                      <div className="proj-row-id">{p.cognigy_project_id}</div>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           ))}
