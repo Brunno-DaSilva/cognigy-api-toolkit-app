@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { useActiveProject } from "../../context/ActiveProjectContext";
 import useSnapshots from "../../hooks/useSnapshots";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import Select from "../../components/ui/Select";
 import LoadingScreen from "../../components/ui/LoadingScreen";
 import JobProgress from "../../components/tools/Snapshots/JobProgress";
 import PromoteModal from "../../components/tools/Snapshots/PromoteModal";
@@ -157,17 +158,15 @@ const Snapshots = () => {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {apiKeys.length > 1 && (
-            <select
+            <Select
               className="select"
               value={effectiveKeyId}
-              onChange={(e) => setApiKeyId(e.target.value)}
-            >
-              {apiKeys.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.name} ···· {k.key_last4}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setApiKeyId(v)}
+              options={apiKeys.map((k) => ({
+                value: k.id,
+                label: `${k.name} ···· ${k.key_last4}`,
+              }))}
+            />
           )}
           <button
             type="button"

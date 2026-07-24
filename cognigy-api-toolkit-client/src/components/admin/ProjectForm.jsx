@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Modal from "../ui/Modal";
+import Select from "../ui/Select";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 
@@ -110,18 +111,22 @@ const ProjectForm = ({
         {environments.length > 0 && (
           <label className="field">
             <span className="field-label">Environment (optional)</span>
-            <select
+            <Select
               className="field-input"
               value={environmentId}
-              onChange={(e) => setEnvironmentId(e.target.value)}
-            >
-              <option value="">— None (use customer's base URL) —</option>
-              {environments.map((env) => (
-                <option key={env.id} value={env.id}>
-                  {env.name} — {env.base_url}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setEnvironmentId(v)}
+              placeholder="— None (use customer's base URL) —"
+              options={[
+                {
+                  value: "",
+                  label: "— None (use customer's base URL) —",
+                },
+                ...environments.map((env) => ({
+                  value: env.id,
+                  label: `${env.name} — ${env.base_url}`,
+                })),
+              ]}
+            />
             <span className="field-hint">
               Pin this project to an environment so API calls route to that env's
               base URL. Leave unset to use the customer's base URL.

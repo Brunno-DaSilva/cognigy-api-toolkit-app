@@ -153,15 +153,15 @@ body {
   flex: 1;
 }
 
-/* Right-aligned customer dropdown */
-.topbar-customer {
+/* Right-aligned combined customer + project selector */
+.topbar-selector {
   position: relative;
   flex-shrink: 0;
 }
-.topbar-customer-trigger {
+.topbar-selector-trigger {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 14px;
   border-radius: 10px;
   background: var(--surface-2);
@@ -171,55 +171,114 @@ body {
   font-size: 13px;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
-  min-width: 220px;
+  max-width: 420px;
 }
-.topbar-customer-trigger:hover {
+.topbar-selector-trigger:hover {
   background: rgba(var(--brand-rgb), 0.06);
   border-color: rgba(var(--brand-rgb), 0.3);
 }
-.topbar-customer-label {
-  font-size: 10px;
+.topbar-selector-label {
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
   flex-shrink: 0;
 }
-.topbar-customer-name {
-  font-weight: 600;
+.topbar-selector-crumb {
+  font-weight: 500;
   color: var(--text);
-  flex: 1;
-  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.topbar-customer-dropdown {
+.topbar-selector-trigger svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Dropdown panel — anchored to the far right, opens downward/left */
+.topbar-selector-dropdown {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 320px;
-  max-width: 480px;
-  max-height: 420px;
+  width: 340px;
+  max-width: min(340px, calc(100vw - 32px));
+  max-height: 460px;
   overflow-y: auto;
-  padding: 6px;
+  padding: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: var(--shadow-pop);
   z-index: 30;
 }
-.topbar-customer-empty {
-  padding: 14px 12px;
-  font-size: 13px;
-  color: var(--text-muted);
+.topbar-selector-section + .topbar-selector-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
-.topbar-customer-option {
+.topbar-selector-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+/* Custom customer dropdown (replaces native <select> so the highlight,
+   corners and caret match the rest of the app's dropdowns) */
+.topbar-cust {
+  position: relative;
+}
+.topbar-cust-trigger {
   width: 100%;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 12px;
-  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.topbar-cust-trigger:hover {
+  border-color: rgba(var(--brand-rgb), 0.4);
+}
+.topbar-cust-trigger-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar-cust-trigger svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.topbar-cust-list {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.topbar-cust-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -230,21 +289,70 @@ body {
   cursor: pointer;
   transition: background 0.1s;
 }
-.topbar-customer-option:hover {
+.topbar-cust-option:hover {
   background: rgba(var(--brand-rgb), 0.06);
 }
-.topbar-customer-option--active {
+.topbar-cust-option--active {
+  background: rgba(var(--brand-rgb), 0.12);
+  color: var(--brand-strong);
+  font-weight: 600;
+}
+.topbar-cust-option-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar-cust-option-check {
+  color: var(--brand);
+  flex-shrink: 0;
+}
+.topbar-selector-projects {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.topbar-selector-empty {
+  padding: 12px 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.topbar-selector-project {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1px 12px;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.topbar-selector-project:hover {
+  background: rgba(var(--brand-rgb), 0.06);
+}
+.topbar-selector-project--active {
   background: rgba(var(--brand-rgb), 0.12);
 }
-.topbar-customer-option-name {
-  font-weight: 600;
+.topbar-selector-project-name {
+  font-weight: 500;
+  font-size: 13px;
   color: var(--text);
   grid-column: 1;
   grid-row: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.topbar-customer-option-meta {
+.topbar-selector-project--active .topbar-selector-project-name {
+  color: var(--brand-strong);
+}
+.topbar-selector-project-meta {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--text-subtle);
   font-family: "Figtree", ui-monospace, Consolas, monospace;
   grid-column: 1;
   grid-row: 2;
@@ -252,7 +360,7 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.topbar-customer-option-check {
+.topbar-selector-project-check {
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
@@ -395,6 +503,106 @@ body {
 }
 .select--sm {
   width: 140px;
+}
+
+/* ── App-wide custom Select (replaces native <select>) ──────────
+   The trigger inherits the box styling of whatever input class it is
+   given (.select / .field-input / .select--sm …); this only layers on
+   the flex layout + caret. The option list is portal-rendered. */
+.app-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+}
+.app-select-trigger:hover:not(:disabled) {
+  border-color: rgba(var(--brand-rgb), 0.4);
+}
+/* Purple focus/open border — overrides the global .select:focus (near-black) */
+.app-select-trigger:focus,
+.app-select-trigger[aria-expanded="true"] {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.15);
+  outline: none;
+}
+.app-select-trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.app-select-trigger svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.app-select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-select-value--placeholder {
+  color: var(--text-subtle);
+}
+.app-select-list {
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-pop);
+  overflow-y: auto;
+}
+.app-select-list::-webkit-scrollbar {
+  width: 6px;
+}
+.app-select-list::-webkit-scrollbar-thumb {
+  background: rgba(var(--brand-rgb), 0.3);
+  border-radius: 3px;
+}
+.app-select-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text);
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.app-select-option:hover {
+  background: rgba(var(--brand-rgb), 0.06);
+}
+.app-select-option--active {
+  background: rgba(var(--brand-rgb), 0.12);
+  color: var(--brand-strong);
+  font-weight: 600;
+}
+.app-select-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.app-select-option-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-select-option-check {
+  color: var(--brand);
+  flex-shrink: 0;
+}
+.app-select-empty {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 /* ── Type chips ─────────────────────────────────────────────── */
@@ -1344,12 +1552,6 @@ body {
   color: var(--text);
   border-bottom: 1px solid var(--border);
 }
-.main-project-selector {
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
-  position: relative;
-}
-
 /* Sidebar env list (only renders when active customer has envs) */
 .sidebar-envs {
   padding: 12px;
@@ -1411,125 +1613,6 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.main-project-selector-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
-  padding: 0 4px;
-}
-.main-project-selector-button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 9px 12px;
-  border-radius: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.main-project-selector-button:hover {
-  background: var(--surface);
-  border-color: #d6d8de;
-}
-.main-project-selector-button--empty {
-  color: var(--text-subtle);
-  font-style: italic;
-}
-.main-project-selector-meta {
-  font-size: 10px;
-  color: var(--text-subtle);
-  margin-top: 2px;
-  font-family: "Figtree", ui-monospace, Consolas, monospace;
-}
-.main-project-selector-caret {
-  font-size: 10px;
-  opacity: 0.7;
-  flex-shrink: 0;
-  color: var(--text-muted);
-}
-.main-project-selector-dropdown {
-  position: absolute;
-  top: calc(100% - 4px);
-  left: 12px;
-  right: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px;
-  max-height: 360px;
-  overflow: auto;
-  box-shadow: 0 12px 32px rgba(15, 17, 23, 0.12);
-  z-index: 20;
-}
-.main-project-selector-search {
-  width: 100%;
-  padding: 8px 10px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
-  margin-bottom: 6px;
-  outline: none;
-}
-.main-project-selector-search:focus {
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.15);
-}
-.main-project-selector-group {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  padding: 8px 10px 4px;
-}
-.main-project-selector-option {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  text-align: left;
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.main-project-selector-option:hover {
-  background: rgba(var(--brand-rgb), 0.06);
-}
-.main-project-selector-option--active {
-  background: rgba(var(--brand-rgb), 0.14);
-  color: var(--brand-strong);
-}
-.main-project-selector-option-meta {
-  font-family: "Figtree", ui-monospace, Consolas, monospace;
-  font-size: 10px;
-  color: var(--text-subtle);
-  margin-top: 2px;
-}
-.main-project-selector-empty {
-  padding: 10px;
-  font-size: 12px;
-  color: var(--text-subtle);
-  text-align: center;
-}
-
 .main-nav {
   flex: 1;
   overflow-y: auto;

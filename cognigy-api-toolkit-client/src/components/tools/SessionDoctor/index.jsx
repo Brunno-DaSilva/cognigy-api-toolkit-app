@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Card from "../../ui/Card";
 import FormField from "../../ui/FormField";
+import Select from "../../ui/Select";
 import useSessionAnalyzer from "../../../hooks/useSessionAnalyzer";
 
 const DIAGNOSE_PROMPT =
@@ -74,17 +75,15 @@ const SessionDoctor = ({ project, customer, apiKeys }) => {
                 </Link>
               </div>
             ) : (
-              <select
+              <Select
                 className="select"
                 value={apiKeyId}
-                onChange={(e) => setApiKeyId(e.target.value)}
-              >
-                {apiKeys.map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.name} ···· {k.key_last4}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setApiKeyId(v)}
+                options={apiKeys.map((k) => ({
+                  value: k.id,
+                  label: `${k.name} ···· ${k.key_last4}`,
+                }))}
+              />
             )}
           </FormField>
           <FormField label="Session ID">

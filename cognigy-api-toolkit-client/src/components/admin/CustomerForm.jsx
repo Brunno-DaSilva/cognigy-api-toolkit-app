@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Modal from "../ui/Modal";
+import Select from "../ui/Select";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 
@@ -149,17 +150,12 @@ const CustomerForm = ({ open, customer, onClose, onSaved }) => {
 
         <label className="field">
           <span className="field-label">Platform</span>
-          <select
+          <Select
             className="field-input"
             value={presetId}
-            onChange={(e) => handlePresetChange(e.target.value)}
-          >
-            {PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => handlePresetChange(v)}
+            options={PRESETS.map((p) => ({ value: p.id, label: p.label }))}
+          />
           <span className="field-hint">
             Pick the platform this customer was created on. Cognigy and CXone use
             different API hosts. Choose Custom for other regions or a private

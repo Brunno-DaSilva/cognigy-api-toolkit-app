@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import Card from "../../ui/Card";
+import Select from "../../ui/Select";
 import { useFlowIndex } from "../../../context/FlowIndexContext";
 import { searchRecords } from "../../../utils/flowSearch";
 
@@ -253,18 +254,18 @@ const FlowSearch = ({ customer, apiKeys }) => {
             />
             regex
           </label>
-          <select
+          <Select
             className="select fs-flow-filter"
             value={flowFilter}
-            onChange={(e) => setFlowFilter(e.target.value)}
-          >
-            <option value="">All flows ({facets.flows.length})</option>
-            {facets.flows.map((f) => (
-              <option key={f.flowId} value={f.flowId}>
-                {f.flowName} ({f.count})
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setFlowFilter(v)}
+            options={[
+              { value: "", label: `All flows (${facets.flows.length})` },
+              ...facets.flows.map((f) => ({
+                value: f.flowId,
+                label: `${f.flowName} (${f.count})`,
+              })),
+            ]}
+          />
         </div>
 
         {facets.nodeTypes.length > 0 && (

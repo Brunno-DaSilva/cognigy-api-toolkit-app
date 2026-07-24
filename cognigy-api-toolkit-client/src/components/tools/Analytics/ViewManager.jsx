@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Modal from "../../ui/Modal";
+import Select from "../../ui/Select";
 import {
   ANALYTICS_DEFAULT_COLUMNS,
   ANALYTICS_VIEWS_STORAGE_KEY,
@@ -120,18 +121,15 @@ const ViewManager = ({ availableColumns, onColumnsChange }) => {
     <>
       <div className="view-manager">
         <label className="view-manager-label">View</label>
-        <select
+        <Select
           className="select select--sm"
           value={activeId}
-          onChange={(e) => handleSelectView(e.target.value)}
-        >
-          {allViews.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name}
-              {v.builtin ? " (built-in)" : ""}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => handleSelectView(v)}
+          options={allViews.map((v) => ({
+            value: v.id,
+            label: `${v.name}${v.builtin ? " (built-in)" : ""}`,
+          }))}
+        />
         <button type="button" className="btn-ghost" onClick={openNew}>
           + New
         </button>

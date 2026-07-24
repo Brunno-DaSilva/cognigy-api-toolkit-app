@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Card from "../../ui/Card";
 import FormField from "../../ui/FormField";
+import Select from "../../ui/Select";
 import FetchProgress from "./FetchProgress";
 import LogBreakdown from "./LogBreakdown";
 import DownloadIcon from "../../ui/DownloadIcon";
@@ -191,17 +192,12 @@ const GetLogs = ({ project, customer, apiKeys }) => {
             />
           </FormField>
           <FormField label="Sort">
-            <select
+            <Select
               className="select"
               value={cfg.sort}
-              onChange={(e) => handleChange("sort", e.target.value)}
-            >
-              {SORT_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => handleChange("sort", v)}
+              options={SORT_OPTIONS}
+            />
           </FormField>
         </div>
 

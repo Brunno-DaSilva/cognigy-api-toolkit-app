@@ -4,7 +4,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useActiveProject } from "../../context/ActiveProjectContext";
 import { useTheme } from "../../context/ThemeContext";
 import { getAvatarUrl } from "../../utils";
-import ProjectSelector from "./ProjectSelector";
 import EnvList from "./EnvList";
 
 const SunIcon = () => (
@@ -189,7 +188,6 @@ const MainSidebar = () => {
       <div className="main-brand">Cognigy API Toolkit</div>
 
       <EnvList />
-      <ProjectSelector />
 
       <nav className="main-nav">
         <div className="main-nav-section">

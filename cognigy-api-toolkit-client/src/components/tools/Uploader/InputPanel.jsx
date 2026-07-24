@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import FormField from "../../ui/FormField";
+import Select from "../../ui/Select";
 import { UPLOAD_ACCEPT, fileTypeFor } from "./fileTypes";
 
 const formatBytes = (n) => {
@@ -88,18 +89,16 @@ const InputPanel = ({
             </Link>
           </div>
         ) : (
-          <select
+          <Select
             className="select"
             value={apiKeyId}
-            onChange={(e) => setApiKeyId(e.target.value)}
+            onChange={(v) => setApiKeyId(v)}
             disabled={disabled}
-          >
-            {apiKeys.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.name} ···· {k.key_last4}
-              </option>
-            ))}
-          </select>
+            options={apiKeys.map((k) => ({
+              value: k.id,
+              label: `${k.name} ···· ${k.key_last4}`,
+            }))}
+          />
         )}
       </FormField>
 
@@ -122,19 +121,20 @@ const InputPanel = ({
           </div>
         ) : (
           <div className="uploader-store-row">
-            <select
+            <Select
               className="select"
               value={selectedStoreId}
-              onChange={(e) => setSelectedStoreId(e.target.value)}
+              onChange={(v) => setSelectedStoreId(v)}
               disabled={disabled}
-            >
-              <option value="">Select a store…</option>
-              {stores.map((s) => (
-                <option key={s._id} value={s._id}>
-                  {s.name} ···· {last4(s._id)}
-                </option>
-              ))}
-            </select>
+              placeholder="Select a store…"
+              options={[
+                { value: "", label: "Select a store…" },
+                ...stores.map((s) => ({
+                  value: s._id,
+                  label: `${s.name} ···· ${last4(s._id)}`,
+                })),
+              ]}
+            />
             <button
               type="button"
               className="btn-ghost"

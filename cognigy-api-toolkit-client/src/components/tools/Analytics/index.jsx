@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useMemo, useCallback } from "react";
 import Card from "../../ui/Card";
 import FormField from "../../ui/FormField";
+import Select from "../../ui/Select";
 import StatCard from "../../ui/StatCard";
 import ViewManager from "./ViewManager";
 import AnalyticsTable from "./AnalyticsTable";
@@ -155,25 +156,22 @@ const Analytics = ({ project, customer, apiKeys }) => {
                 </Link>
               </div>
             ) : (
-              <select
+              <Select
                 className="select"
                 value={apiKeyId}
-                onChange={(e) => updateForm({ apiKeyId: e.target.value })}
-              >
-                {apiKeys.map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.name} ···· {k.key_last4}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => updateForm({ apiKeyId: v })}
+                options={apiKeys.map((k) => ({
+                  value: k.id,
+                  label: `${k.name} ···· ${k.key_last4}`,
+                }))}
+              />
             )}
           </FormField>
           <FormField label="Endpoint" required>
-            <select
+            <Select
               className="select"
               value={endpoint}
-              onChange={(e) => {
-                const nextEndpoint = e.target.value;
+              onChange={(nextEndpoint) => {
                 // Sessions use `startedAt`; Analytics/Conversations use `timestamp`.
                 updateForm({
                   endpoint: nextEndpoint,
@@ -181,23 +179,22 @@ const Analytics = ({ project, customer, apiKeys }) => {
                     nextEndpoint === "/Sessions" ? "startedAt" : "timestamp",
                 });
               }}
-            >
-              {ANALYTICS_ENDPOINTS.map((ep) => (
-                <option key={ep.value} value={ep.value}>
-                  {ep.label} — {ep.value}
-                </option>
-              ))}
-            </select>
+              options={ANALYTICS_ENDPOINTS.map((ep) => ({
+                value: ep.value,
+                label: `${ep.label} — ${ep.value}`,
+              }))}
+            />
           </FormField>
           <FormField label="Date field">
-            <select
+            <Select
               className="select"
               value={dateField}
-              onChange={(e) => updateForm({ dateField: e.target.value })}
-            >
-              <option value="timestamp">timestamp</option>
-              <option value="startedAt">startedAt</option>
-            </select>
+              onChange={(v) => updateForm({ dateField: v })}
+              options={[
+                { value: "timestamp", label: "timestamp" },
+                { value: "startedAt", label: "startedAt" },
+              ]}
+            />
           </FormField>
         </div>
 

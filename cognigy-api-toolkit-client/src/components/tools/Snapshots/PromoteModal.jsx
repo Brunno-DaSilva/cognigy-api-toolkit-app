@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Modal from "../../ui/Modal";
+import Select from "../../ui/Select";
 import { supabase } from "../../../lib/supabase";
 
 // Lets the user pick a target project + API key for a Promote job.
@@ -135,20 +136,24 @@ const PromoteModal = ({ open, sourceSnapshot, sourceProject, onClose, onConfirm 
 
         <label className="field">
           <span className="field-label">Target project</span>
-          <select
+          <Select
             className="select"
             value={targetProjectId}
-            onChange={(e) => setTargetProjectId(e.target.value)}
+            onChange={(v) => setTargetProjectId(v)}
             disabled={busy}
-          >
-            <option value="">— pick a project —</option>
-            {allProjects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {customerName(p.id)} / {p.name}
-                {p.id === sourceSnapshot?.project_id ? "  (same env — will Restore)" : ""}
-              </option>
-            ))}
-          </select>
+            placeholder="— pick a project —"
+            options={[
+              { value: "", label: "— pick a project —" },
+              ...allProjects.map((p) => ({
+                value: p.id,
+                label: `${customerName(p.id)} / ${p.name}${
+                  p.id === sourceSnapshot?.project_id
+                    ? "  (same env — will Restore)"
+                    : ""
+                }`,
+              })),
+            ]}
+          />
         </label>
 
         {targetProjectId && (
@@ -159,19 +164,20 @@ const PromoteModal = ({ open, sourceSnapshot, sourceProject, onClose, onConfirm 
                 No API keys for this customer. Add one in the customer page first.
               </div>
             ) : (
-              <select
+              <Select
                 className="select"
                 value={targetApiKeyId}
-                onChange={(e) => setTargetApiKeyId(e.target.value)}
+                onChange={(v) => setTargetApiKeyId(v)}
                 disabled={busy}
-              >
-                <option value="">— pick a key —</option>
-                {keys.map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.name} ···· {k.key_last4}
-                  </option>
-                ))}
-              </select>
+                placeholder="— pick a key —"
+                options={[
+                  { value: "", label: "— pick a key —" },
+                  ...keys.map((k) => ({
+                    value: k.id,
+                    label: `${k.name} ···· ${k.key_last4}`,
+                  })),
+                ]}
+              />
             )}
           </label>
         )}
