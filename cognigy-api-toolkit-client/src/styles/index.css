@@ -704,12 +704,13 @@ body {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
 
+/* Export / download buttons — indigo (was green). */
 .btn--success {
-  background: var(--success);
+  background: #4f46e5;
   color: #fff;
 }
 .btn--success:hover {
-  background: #0ea472;
+  background: #4338ca;
   transform: translateY(-1px);
 }
 
@@ -1994,11 +1995,14 @@ body {
   position: relative;
   text-decoration: none;
   color: inherit;
-  transition: transform 0.12s, box-shadow 0.15s;
+  transition: transform 0.12s, box-shadow 0.15s, border-color 0.15s,
+    background-color 0.15s;
 }
 .entity-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  border-color: var(--brand);
+  background: rgba(var(--brand-rgb), 0.06);
 }
 .entity-card-name {
   font-weight: 700;
