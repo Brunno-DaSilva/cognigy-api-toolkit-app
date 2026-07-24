@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useActiveProject } from "../../context/ActiveProjectContext";
 import { useTheme } from "../../context/ThemeContext";
 import { getAvatarUrl } from "../../utils";
+import CognigyLogo from "../ui/Logo";
 import EnvList from "./EnvList";
 
 const SunIcon = () => (
@@ -185,7 +186,10 @@ const MainSidebar = () => {
 
   return (
     <aside className="main-sidebar">
-      <div className="main-brand">Cognigy API Toolkit</div>
+      <div className="main-brand">
+        <CognigyLogo width={22} height={21} />
+        <span>Cognigy API Toolkit</span>
+      </div>
 
       <EnvList />
 

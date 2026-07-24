@@ -1566,12 +1566,18 @@ body {
     var(--sidebar-bg);
 }
 .main-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 18px 20px 14px;
   font-weight: 700;
   font-size: 15px;
   letter-spacing: -0.01em;
   color: var(--text);
   border-bottom: 1px solid var(--border);
+}
+.main-brand svg {
+  flex-shrink: 0;
 }
 /* Sidebar env list (only renders when active customer has envs) */
 .sidebar-envs {
