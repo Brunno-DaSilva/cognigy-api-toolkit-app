@@ -140,8 +140,6 @@ body {
 /* Top bar — sits to the right of the sidebar, above the page content. */
 .topbar {
   height: 56px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   padding: 0 24px;
