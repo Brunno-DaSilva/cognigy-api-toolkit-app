@@ -12,13 +12,15 @@ import ConfigPanel from "../../components/tools/Uploader/ConfigPanel";
 import CreateStoreModal from "../../components/tools/Uploader/CreateStoreModal";
 import Progress from "../../components/tools/Uploader/Progress";
 
-// Defaults mirror upload_FEATURE/upload-files.mjs and the feature spec.
+// Starting values for the Upload settings sliders. Each must be one of the
+// stops defined in ConfigPanel. Time values are in ms. (Batch delay and retry
+// delay default to 10s here, not the backend script's 20s/35s.)
 const DEFAULT_CONFIG = {
   delayBetweenUploads: 10000,
   batchSize: 5,
-  batchDelay: 20000,
+  batchDelay: 10000,
   maxRetries: 3,
-  retryDelay: 35000,
+  retryDelay: 10000,
 };
 
 const Uploader = () => {

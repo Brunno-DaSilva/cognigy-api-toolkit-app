@@ -2964,6 +2964,16 @@ body {
   font-family: "Figtree", monospace;
   white-space: nowrap;
 }
+/* Read-only value beside an Upload-settings slider (replaces the number box) */
+.uploader-slider-value {
+  min-width: 64px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: "Figtree", ui-monospace, Consolas, monospace;
+  white-space: nowrap;
+}
 .uploader-failed {
   border: 1px solid #ef444433;
   background: #ef44440a;
