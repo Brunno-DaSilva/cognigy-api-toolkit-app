@@ -1,5 +1,4 @@
-import { Link } from "react-router-dom";
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
 import Card from "../../ui/Card";
 import FormField from "../../ui/FormField";
 import Select from "../../ui/Select";
@@ -8,8 +7,43 @@ import ViewManager from "./ViewManager";
 import AnalyticsTable from "./AnalyticsTable";
 import { useAnalyticsCache } from "../../../context/AnalyticsCacheContext";
 import { ANALYTICS_ENDPOINTS } from "../../../constants";
-import { slugify } from "../../../utils";
+import { slugify, toLocalDatetime } from "../../../utils";
 import DownloadIcon from "../../ui/DownloadIcon";
+
+// Quick-select presets — each returns { start, end } Dates. They fill the two
+// date widgets (which stay visible + editable); they are a shortcut, not a
+// replacement.
+const PRESETS = [
+  {
+    id: "today",
+    label: "Today",
+    range: () => {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      return { start, end: new Date() };
+    },
+  },
+  {
+    id: "24h",
+    label: "Last 24h",
+    range: () => {
+      const end = new Date();
+      return { start: new Date(end.getTime() - 24 * 60 * 60 * 1000), end };
+    },
+  },
+  {
+    id: "next7",
+    label: "Next 7 days",
+    range: () => {
+      const start = new Date();
+      return { start, end: new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000) };
+    },
+  },
+];
+
+// Left-border accent per stat card — purple first (brand), then blue / orange /
+// pink, matching the Get Logs stat-card pattern.
+const STAT_ACCENTS = ["#863bff", "#3b82f6", "#f59e0b", "#ec4899"];
 
 const exportCSV = (rows, columns, endpoint, customerName) => {
   if (!rows.length) return;
@@ -61,13 +95,31 @@ const Analytics = ({ project, customer, apiKeys }) => {
   } = useAnalyticsCache();
 
   const { apiKeyId, endpoint, dateField, startDate, endDate } = form;
+  const [activePreset, setActivePreset] = useState(null);
 
-  // Default the API key once apiKeys load (if nothing was cached yet).
+  // API key is resolved automatically from the active customer/project
+  // selection (top-right selector), not chosen in this form.
   useEffect(() => {
     if (!apiKeyId && apiKeys.length > 0) {
       updateForm({ apiKeyId: apiKeys[0].id });
     }
   }, [apiKeyId, apiKeys, updateForm]);
+
+  // Manual edits to either widget clear the active preset highlight — the
+  // widgets remain the source of truth.
+  const handleDateChange = (key, value) => {
+    setActivePreset(null);
+    updateForm({ [key]: value });
+  };
+
+  const applyPreset = (preset) => {
+    const { start, end } = preset.range();
+    setActivePreset(preset.id);
+    updateForm({
+      startDate: toLocalDatetime(start),
+      endDate: toLocalDatetime(end),
+    });
+  };
 
   const handleColumnsChange = useCallback(
     (cols) => {
@@ -126,47 +178,8 @@ const Analytics = ({ project, customer, apiKeys }) => {
 
   return (
     <div className="tool-layout">
-      <Card title="Target">
-        <div className="grid grid--3 mb-14">
-          <FormField label="Customer">
-            <input className="input" value={customer?.name ?? ""} disabled />
-          </FormField>
-          <FormField label="Project">
-            <input className="input" value={project.name} disabled />
-          </FormField>
-          <FormField label="Cognigy project ID">
-            <input
-              className="input"
-              value={project.cognigy_project_id}
-              disabled
-            />
-          </FormField>
-        </div>
-
-        <div className="grid grid--3 mb-14">
-          <FormField label="API key" required>
-            {apiKeys.length === 0 ? (
-              <div className="row-list-empty">
-                No keys for this customer.{" "}
-                <Link
-                  className="btn-link"
-                  to={`/admin/customers/${customer?.id}`}
-                >
-                  Add one →
-                </Link>
-              </div>
-            ) : (
-              <Select
-                className="select"
-                value={apiKeyId}
-                onChange={(v) => updateForm({ apiKeyId: v })}
-                options={apiKeys.map((k) => ({
-                  value: k.id,
-                  label: `${k.name} ···· ${k.key_last4}`,
-                }))}
-              />
-            )}
-          </FormField>
+      <Card title="Search">
+        <div className="grid grid--2 mb-14">
           <FormField label="Endpoint" required>
             <Select
               className="select"
@@ -200,23 +213,40 @@ const Analytics = ({ project, customer, apiKeys }) => {
 
         <p className="analytics-hint">{endpointHint}</p>
 
-        <div className="grid grid--2 mb-14">
-          <FormField label="From (UTC)" required>
-            <input
-              className="input"
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => updateForm({ startDate: e.target.value })}
-            />
-          </FormField>
-          <FormField label="To (UTC)" required>
-            <input
-              className="input"
-              type="datetime-local"
-              value={endDate}
-              onChange={(e) => updateForm({ endDate: e.target.value })}
-            />
-          </FormField>
+        <div className="gl-date-block mb-14">
+          <div className="grid grid--2">
+            <FormField label="From (UTC)" required>
+              <input
+                className="input"
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => handleDateChange("startDate", e.target.value)}
+              />
+            </FormField>
+            <FormField label="To (UTC)" required>
+              <input
+                className="input"
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => handleDateChange("endDate", e.target.value)}
+              />
+            </FormField>
+          </div>
+          <div className="gl-presets">
+            <span className="gl-presets-label">Quick select</span>
+            {PRESETS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`gl-preset-btn${
+                  activePreset === p.id ? " gl-preset-btn--active" : ""
+                }`}
+                onClick={() => applyPreset(p)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="action-bar">
@@ -241,18 +271,25 @@ const Analytics = ({ project, customer, apiKeys }) => {
 
       {done && metrics && (
         <div className="card-grid">
-          <StatCard label="Total records" value={metrics.total} />
+          <StatCard
+            label="Total records"
+            value={metrics.total}
+            accent={STAT_ACCENTS[0]}
+          />
           <StatCard
             label="Unique sessions"
             value={metrics.sessions > 1 ? metrics.sessions : "—"}
+            accent={STAT_ACCENTS[1]}
           />
           <StatCard
             label="Unique users"
             value={metrics.users > 1 ? metrics.users : "—"}
+            accent={STAT_ACCENTS[2]}
           />
           <StatCard
             label="Unique flows"
             value={metrics.flows > 1 ? metrics.flows : "—"}
+            accent={STAT_ACCENTS[3]}
           />
         </div>
       )}
