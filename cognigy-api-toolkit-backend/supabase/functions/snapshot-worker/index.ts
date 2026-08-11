@@ -5,6 +5,11 @@
 // snapshot_promotions row and re-invokes the worker until status is 'done'
 // or 'failed'.
 //
+// Only one worker may advance a job at a time — see claim_snapshot_job in
+// 0008_snapshot_versioning.sql. Snapshot names are semantic versions chosen by
+// the user before the job starts (v1.0.1), and a version travels with the
+// artifact when promoted.
+//
 // Job kinds:
 //   create         (use case 1) — new snapshot on a project
 //   promote_same   (use case 2) — safety snapshot of project, then Restore source
@@ -45,33 +50,55 @@ const C_TASK = (id: string) => `/new/v2.0/tasks/${id}`;
 const TASK_IN_PROGRESS = new Set(["queued", "active"]);
 const TASK_DONE = "done";
 
+// Rename an existing snapshot (used to stamp the promoted version onto the
+// copy that lands in the target). Best-effort — see stepPollUpload.
+const C_UPDATE = (id: string) => `/new/v2.0/snapshots/${id}`;
+
+// ---------------------------------------------------------------------------
+// Versioning
+//
+// Snapshots are named v<major>.<minor>.<patch>. The user picks the bump and
+// writes the changelog in the UI, so 'create' jobs carry name/description/
+// version on the job row. Safety snapshots taken before a promote are named
+// after the version they roll back to: v1.1.0_pre-promote_Aug-11-2026.
+// ---------------------------------------------------------------------------
+type Version = { major: number; minor: number; patch: number };
+
+const VERSION_RE = /^v(\d+)\.(\d+)\.(\d+)(?:[._-].*)?$/i;
+
+function parseVersion(name?: string | null): Version | null {
+  const m = String(name ?? "").trim().match(VERSION_RE);
+  if (!m) return null;
+  return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3]) };
+}
+
+function formatVersion(v: Version): string {
+  return `v${v.major}.${v.minor}.${v.patch}`;
+}
+
+function latestVersion(names: Array<string | null | undefined>): Version | null {
+  let best: Version | null = null;
+  for (const n of names) {
+    const v = parseVersion(n);
+    if (v && (!best || compare(v, best) > 0)) best = v;
+  }
+  return best;
+}
+
+function compare(a: Version, b: Version): number {
+  return a.major - b.major || a.minor - b.minor || a.patch - b.patch;
+}
+
 // Date suffix for snapshot names: e.g. "May-20-2026" (UTC).
-function backupDateSuffix(d = new Date()): string {
+function dateSuffix(d = new Date()): string {
   const month = d.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
   const day = String(d.getUTCDate()).padStart(2, "0");
   const year = d.getUTCFullYear();
   return `${month}-${day}-${year}`;
 }
 
-function nameForSnapshot(kind: Job["kind"]): { name: string; description: string } {
-  const date = backupDateSuffix();
-  if (kind === "create") {
-    return {
-      name: `snapshot_${date}_FromToolkit`,
-      description: "Snapshot taken from Cognigy API Toolkit",
-    };
-  }
-  if (kind === "import") {
-    return {
-      name: `imported_${date}_FromToolkit`,
-      description: "Imported from Cognigy via Toolkit",
-    };
-  }
-  // promote_same / promote_cross — safety snapshot on the target
-  return {
-    name: `backup_${date}_FromToolkit`,
-    description: "Snapshot taken prior to upload a new snapshot from lower env",
-  };
+function prePromoteName(current: Version | null): string {
+  return `${current ? formatVersion(current) : "unversioned"}_pre-promote_${dateSuffix()}`;
 }
 
 const corsHeaders = {
@@ -97,6 +124,11 @@ type Job = {
   resulting_snapshot_id: string | null;
   error_message: string | null;
   log: any[];
+  // Chosen in the UI before the job starts (see 0008_snapshot_versioning.sql).
+  snapshot_name: string | null;
+  snapshot_description: string | null;
+  snapshot_version: string | null;
+  claimed_at: string | null;
 };
 
 type KeyInfo = { key: string; base_url: string };
@@ -133,6 +165,19 @@ Deno.serve(async (req) => {
       return json(job);
     }
 
+    // Exactly one worker may advance a job at a time. Without this, the UI's
+    // initial kick and the poll loop's first tick both saw step=null and both
+    // POSTed a create-snapshot to Cognigy — one click, two snapshots.
+    const { data: claimed, error: claimErr } = await admin.rpc(
+      "claim_snapshot_job",
+      { p_job_id: job.id },
+    );
+    if (claimErr) return json({ error: `claim failed: ${claimErr.message}` }, 500);
+    if (!claimed) {
+      // Someone else is mid-step. Report the current state; the caller polls.
+      return json({ ...job, claim_skipped: true });
+    }
+
     try {
       const updated = await advance(admin, job);
       return json(updated);
@@ -145,6 +190,9 @@ Deno.serve(async (req) => {
       await appendLog(admin, job.id, msg, "err");
       const failed = await loadJob(admin, job.id);
       return json(failed);
+    } finally {
+      // Release even on failure so a retry isn't blocked until the lease expires.
+      await admin.rpc("release_snapshot_job", { p_job_id: job.id });
     }
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
@@ -224,10 +272,13 @@ async function stepStartCreateOnTarget(admin: SupabaseClient, job: Job): Promise
   await evictCurrentIfNeeded(admin, job);
 
   await setProgress(admin, job, "creating", 10);
-  const key = await loadKey(admin, job.target_api_key_id);
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
   const project = await loadProject(admin, job.target_project_id);
 
-  const { name, description } = nameForSnapshot(job.kind);
+  const { name, description, version } = await resolveNames(admin, job);
+  // Stash so the download step names the DB row identically without recomputing.
+  await appendLog(admin, job.id, `snapshot_name=${name}`, "meta");
+  if (version) await appendLog(admin, job.id, `snapshot_version=${version}`, "meta");
 
   const res = await cognigyFetch(key, "POST", C_CREATE, undefined, {
     projectId: project.cognigy_project_id,
@@ -254,7 +305,17 @@ async function stepStartImport(admin: SupabaseClient, job: Job): Promise<Job> {
   await appendLog(admin, job.id, `cognigy_snapshot_id=${snapId}`, "info");
 
   await setProgress(admin, job, "packaging", 15);
-  const key = await loadKey(admin, job.target_api_key_id);
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
+
+  // Keep Cognigy's own name for the row we're about to create — if it was made
+  // in the Cognigy GUI as v1.3.0, it stays v1.3.0 in the toolkit.
+  const project = await loadProject(admin, job.target_project_id);
+  const remote = await fetchCognigySnapshots(key, project.cognigy_project_id);
+  const remoteName = remote.find((r) => r._id === snapId)?.name;
+  if (remoteName) {
+    await appendLog(admin, job.id, `cognigy_snapshot_name=${remoteName}`, "meta");
+  }
+
   const res = await cognigyFetch(key, "POST", C_PACKAGE(snapId));
   const taskId = res?._id;
   if (!taskId) throw new Error(`package did not return a task _id`);
@@ -271,7 +332,7 @@ async function stepStartImport(admin: SupabaseClient, job: Job): Promise<Job> {
 // task object has a `data` field with type-specific result fields).
 // ---------------------------------------------------------------------------
 async function stepPollCreate(admin: SupabaseClient, job: Job): Promise<Job> {
-  const key = await loadKey(admin, job.target_api_key_id);
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
   const task = await cognigyFetch(key, "GET", C_TASK(job.cognigy_task_id!));
   const status = String(task?.status ?? "").toLowerCase();
 
@@ -310,7 +371,7 @@ async function stepPollCreate(admin: SupabaseClient, job: Job): Promise<Job> {
 // The actual binary is fetched in the next step via C_DOWNLOAD(snapshotId).
 // ---------------------------------------------------------------------------
 async function stepPollPackage(admin: SupabaseClient, job: Job): Promise<Job> {
-  const key = await loadKey(admin, job.target_api_key_id);
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
   const task = await cognigyFetch(key, "GET", C_TASK(job.cognigy_task_id!));
   const status = String(task?.status ?? "").toLowerCase();
 
@@ -331,7 +392,7 @@ async function stepDownloadToStorage(admin: SupabaseClient, job: Job): Promise<J
   if (!cognigySnapshotId) throw new Error(`no cognigy_snapshot_id stashed on job`);
 
   const project = await loadProject(admin, job.target_project_id);
-  const key = await loadKey(admin, job.target_api_key_id);
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
 
   const dlUrl = new URL(C_DOWNLOAD(cognigySnapshotId), key.base_url);
   const dlRes = await fetch(dlUrl.toString(), {
@@ -356,7 +417,7 @@ async function stepDownloadToStorage(admin: SupabaseClient, job: Job): Promise<J
     });
   if (upErr) throw new Error(`storage upload failed: ${upErr.message}`);
 
-  const { name, description } = nameForSnapshot(job.kind);
+  const { name, description, version } = await resolveNames(admin, job);
 
   const { error: insErr } = await admin.from("snapshots").insert({
     id: newSnapshotId,
@@ -365,6 +426,7 @@ async function stepDownloadToStorage(admin: SupabaseClient, job: Job): Promise<J
     cognigy_snapshot_id: cognigySnapshotId,
     name,
     description,
+    version,
     size_bytes: sizeBytes,
     storage_path: storagePath,
     status: "current",
@@ -422,6 +484,19 @@ async function stepDownloadToStorage(admin: SupabaseClient, job: Job): Promise<J
 // ---------------------------------------------------------------------------
 async function stepEvictForUpload(admin: SupabaseClient, job: Job): Promise<Job> {
   await evictCurrentIfNeeded(admin, job);
+
+  // Record what's in the target before the upload so stepPollUpload can tell
+  // which snapshot is the new one and stamp the promoted version onto it.
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
+  const project = await loadProject(admin, job.target_project_id);
+  const before = await fetchCognigySnapshots(key, project.cognigy_project_id);
+  await appendLog(
+    admin,
+    job.id,
+    `pre_upload_ids=${before.map((s) => s._id).join(",")}`,
+    "meta",
+  );
+
   return await setStep(admin, job, "uploading", 70);
 }
 
@@ -431,7 +506,7 @@ async function stepEvictForUpload(admin: SupabaseClient, job: Job): Promise<Job>
 async function stepUploadToTarget(admin: SupabaseClient, job: Job): Promise<Job> {
   const source = await loadSnapshot(admin, job.source_snapshot_id!);
   const target = await loadProject(admin, job.target_project_id);
-  const targetKey = await loadKey(admin, job.target_api_key_id);
+  const targetKey = await loadKey(admin, job.target_api_key_id, job.target_project_id);
 
   const { data: fileBlob, error: dlErr } = await admin.storage
     .from("snapshots")
@@ -465,7 +540,7 @@ async function stepUploadToTarget(admin: SupabaseClient, job: Job): Promise<Job>
 // Step 5c (promote_cross): poll the upload task.
 // ---------------------------------------------------------------------------
 async function stepPollUpload(admin: SupabaseClient, job: Job): Promise<Job> {
-  const key = await loadKey(admin, job.target_api_key_id);
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
   const task = await cognigyFetch(key, "GET", C_TASK(job.cognigy_task_id!));
   const status = String(task?.status ?? "").toLowerCase();
 
@@ -475,11 +550,72 @@ async function stepPollUpload(admin: SupabaseClient, job: Job): Promise<Job> {
   }
 
   await appendLog(admin, job.id, `snapshot uploaded to target`, "ok");
+  await stampPromotedVersion(admin, job, key);
+
   await admin
     .from("snapshot_promotions")
     .update({ status: "done", step: "done", progress_pct: 100 })
     .eq("id", job.id);
   return (await loadJob(admin, job.id))!;
+}
+
+// ---------------------------------------------------------------------------
+// A version travels with the artifact: Dev's v1.2.0 must read as v1.2.0 in the
+// target too. We send the version as the multipart filename on upload, but
+// Cognigy may take the name from inside the encrypted .csnap instead — so once
+// the upload lands, check the new snapshot's name and rename it if it differs.
+//
+// Best-effort: a failure here leaves a correct snapshot with a stale name, which
+// is not worth failing an otherwise successful promote over.
+// ---------------------------------------------------------------------------
+async function stampPromotedVersion(
+  admin: SupabaseClient,
+  job: Job,
+  key: KeyInfo,
+): Promise<void> {
+  try {
+    const source = await loadSnapshot(admin, job.source_snapshot_id!);
+    const project = await loadProject(admin, job.target_project_id);
+
+    const beforeCsv = findLogValue(job, /^pre_upload_ids=(.*)$/) ?? "";
+    const before = new Set(beforeCsv.split(",").filter(Boolean));
+
+    const after = await fetchCognigySnapshots(key, project.cognigy_project_id);
+    const fresh = after.filter((s) => !before.has(s._id));
+    if (fresh.length !== 1) {
+      await appendLog(
+        admin,
+        job.id,
+        `could not identify the uploaded snapshot (${fresh.length} new in target) — name left as Cognigy set it`,
+        "warn",
+      );
+      return;
+    }
+
+    const uploaded = fresh[0];
+    if (uploaded.name === source.name) {
+      await appendLog(admin, job.id, `target shows ${source.name}`, "ok");
+      return;
+    }
+
+    await cognigyFetch(key, "PATCH", C_UPDATE(uploaded._id), undefined, {
+      name: source.name,
+      description: source.description ?? undefined,
+    });
+    await appendLog(
+      admin,
+      job.id,
+      `renamed uploaded snapshot "${uploaded.name}" -> "${source.name}"`,
+      "ok",
+    );
+  } catch (err) {
+    await appendLog(
+      admin,
+      job.id,
+      `could not stamp the promoted version onto the target: ${(err as Error).message}`,
+      "warn",
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -494,7 +630,7 @@ async function stepStartRestore(admin: SupabaseClient, job: Job): Promise<Job> {
       "source snapshot is archived; promote_same requires it to still be in Cognigy",
     );
   }
-  const key = await loadKey(admin, job.target_api_key_id);
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
   const target = await loadProject(admin, job.target_project_id);
   // Restore requires the target projectId in the body (per docs).
   const res = await cognigyFetch(key, "POST", C_RESTORE(source.cognigy_snapshot_id), undefined, {
@@ -510,7 +646,7 @@ async function stepStartRestore(admin: SupabaseClient, job: Job): Promise<Job> {
 // Step 5b (promote_same): poll the restore task.
 // ---------------------------------------------------------------------------
 async function stepPollRestore(admin: SupabaseClient, job: Job): Promise<Job> {
-  const key = await loadKey(admin, job.target_api_key_id);
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
   const task = await cognigyFetch(key, "GET", C_TASK(job.cognigy_task_id!));
   const status = String(task?.status ?? "").toLowerCase();
 
@@ -544,23 +680,10 @@ async function stepPollRestore(admin: SupabaseClient, job: Job): Promise<Job> {
 // hard-deleted first to make room.
 // ---------------------------------------------------------------------------
 async function evictCurrentIfNeeded(admin: SupabaseClient, job: Job): Promise<void> {
-  const key = await loadKey(admin, job.target_api_key_id);
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
   const project = await loadProject(admin, job.target_project_id);
 
-  // Fetch the live Cognigy snapshot list.
-  const listUrl = new URL(C_LIST, key.base_url);
-  listUrl.searchParams.set("projectId", project.cognigy_project_id);
-  listUrl.searchParams.set("limit", "100");
-  const listRes = await fetch(listUrl.toString(), {
-    headers: { Accept: "application/json", "X-API-Key": key.key },
-  });
-  if (!listRes.ok) {
-    const t = await listRes.text();
-    throw new Error(`Cognigy list snapshots failed: HTTP ${listRes.status} ${t.slice(0, 200)}`);
-  }
-  const listBody = await listRes.json();
-  const cognigySnaps: Array<{ _id: string; name?: string; createdAt?: number }> =
-    listBody?.items ?? [];
+  const cognigySnaps = await fetchCognigySnapshots(key, project.cognigy_project_id);
 
   if (cognigySnaps.length < 10) return; // Cognigy has room — no eviction needed
 
@@ -657,12 +780,115 @@ async function loadJob(admin: SupabaseClient, id: string): Promise<Job | null> {
   return data as Job;
 }
 
-async function loadKey(admin: SupabaseClient, apiKeyId: string): Promise<KeyInfo> {
+// Always pass the project: a project pinned to an environment resolves to that
+// environment's base_url, otherwise the customer's. Promoting across envs sends
+// requests to the wrong installation without it.
+async function loadKey(
+  admin: SupabaseClient,
+  apiKeyId: string,
+  projectId: string,
+): Promise<KeyInfo> {
   const { data, error } = await admin.rpc("get_api_key_plaintext", {
     p_api_key_id: apiKeyId,
+    p_project_id: projectId,
   });
   if (error || !data?.length) throw new Error(`decrypt key failed: ${error?.message}`);
   return { key: data[0].key_plaintext, base_url: data[0].base_url };
+}
+
+// GET the live snapshot list for a Cognigy project. Cognigy is authoritative
+// for both "what's currently there" (eviction) and "what version are we on".
+async function fetchCognigySnapshots(
+  key: KeyInfo,
+  cognigyProjectId: string,
+): Promise<Array<{ _id: string; name?: string; createdAt?: number }>> {
+  const listUrl = new URL(C_LIST, key.base_url);
+  listUrl.searchParams.set("projectId", cognigyProjectId);
+  listUrl.searchParams.set("limit", "100");
+  const res = await fetch(listUrl.toString(), {
+    headers: { Accept: "application/json", "X-API-Key": key.key },
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Cognigy list snapshots failed: HTTP ${res.status} ${t.slice(0, 200)}`);
+  }
+  const body = await res.json();
+  return body?.items ?? [];
+}
+
+type SnapNames = { name: string; description: string; version: string | null };
+
+// What the snapshot this job creates (or, for 'import', pulls) should be called.
+//
+//   create        — exactly what the user chose in the modal. The version and
+//                   changelog are required at job-start time, so there is no
+//                   fallback here by design.
+//   import        — the name Cognigy already has; if that name is a version,
+//                   we adopt it.
+//   promote_*     — safety snapshot of the target, named after the version it
+//                   rolls back to. version stays null: a rollback point isn't
+//                   itself a released version.
+async function resolveNames(admin: SupabaseClient, job: Job): Promise<SnapNames> {
+  if (job.kind === "create") {
+    if (!job.snapshot_name || !job.snapshot_version) {
+      throw new Error(
+        "this create job has no version — start it from the Snapshots page so a version and changelog are chosen",
+      );
+    }
+    return {
+      name: job.snapshot_name,
+      description: job.snapshot_description ?? "",
+      version: job.snapshot_version,
+    };
+  }
+
+  if (job.kind === "import") {
+    const name =
+      findLogValue(job, /^cognigy_snapshot_name=(.+)$/) ?? `imported_${dateSuffix()}`;
+    const parsed = parseVersion(name);
+    return {
+      name,
+      description: job.snapshot_description ?? "Imported from Cognigy via Toolkit",
+      version: parsed ? formatVersion(parsed) : null,
+    };
+  }
+
+  // promote_same / promote_cross
+  const name =
+    findLogValue(job, /^snapshot_name=(.+)$/) ??
+    job.snapshot_name ??
+    (await derivePrePromoteName(admin, job));
+
+  let description = job.snapshot_description;
+  if (!description) {
+    const incoming = job.source_snapshot_id
+      ? await loadSnapshot(admin, job.source_snapshot_id)
+      : null;
+    const label = incoming?.version ?? incoming?.name ?? "a snapshot";
+    description = `Safety snapshot taken before promoting ${label} into this project`;
+  }
+
+  return { name, description, version: null };
+}
+
+// The target's current version comes from Cognigy's live list plus anything we
+// hold for that project (an evicted-but-archived row can be the highest one).
+async function derivePrePromoteName(admin: SupabaseClient, job: Job): Promise<string> {
+  const key = await loadKey(admin, job.target_api_key_id, job.target_project_id);
+  const project = await loadProject(admin, job.target_project_id);
+  const remote = await fetchCognigySnapshots(key, project.cognigy_project_id);
+
+  const { data: localRows } = await admin
+    .from("snapshots")
+    .select("name")
+    .eq("project_id", job.target_project_id);
+
+  return prePromoteName(
+    latestVersion([
+      ...remote.map((r) => r.name),
+      ...(localRows ?? []).map((r: { name: string }) => r.name),
+    ]),
+  );
 }
 
 async function loadProject(admin: SupabaseClient, projectId: string) {
@@ -678,7 +904,9 @@ async function loadProject(admin: SupabaseClient, projectId: string) {
 async function loadSnapshot(admin: SupabaseClient, snapshotId: string) {
   const { data, error } = await admin
     .from("snapshots")
-    .select("id, cognigy_snapshot_id, name, storage_path, status, project_id")
+    .select(
+      "id, cognigy_snapshot_id, name, version, description, storage_path, status, project_id",
+    )
     .eq("id", snapshotId)
     .maybeSingle();
   if (error || !data) throw new Error(`snapshot not found`);

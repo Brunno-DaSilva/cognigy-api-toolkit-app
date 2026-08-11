@@ -171,5 +171,11 @@ Edge Function secrets (set in the Supabase dashboard / `supabase secrets set`):
 
 - Cognigy API keys are encrypted at rest and never returned raw to the frontend.
 - All Cognigy calls are proxied server-side through Edge Functions.
+- Every function authorizes as the **caller** (user JWT + RLS) and only then
+  escalates to `service_role` — the privileged client decides nothing.
 - RLS enforces per-user data isolation at the database level.
 - Auth, email confirmation, and RLS are kept on — not weakened for convenience.
+
+See **[`docs/security.md`](../docs/security.md)** for the full security
+architecture: the rationale behind each pattern, the threat model, and the
+findings (with fixes) from the 2026-07-31 review.

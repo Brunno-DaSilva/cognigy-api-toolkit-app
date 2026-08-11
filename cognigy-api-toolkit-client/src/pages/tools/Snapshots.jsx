@@ -8,7 +8,13 @@ import Select from "../../components/ui/Select";
 import LoadingScreen from "../../components/ui/LoadingScreen";
 import JobProgress from "../../components/tools/Snapshots/JobProgress";
 import PromoteModal from "../../components/tools/Snapshots/PromoteModal";
+import TakeSnapshotModal from "../../components/tools/Snapshots/TakeSnapshotModal";
 import NoActiveProject from "./NoActiveProject";
+import {
+  collectNames,
+  formatVersion,
+  latestVersion,
+} from "../../utils/snapshotVersion";
 
 const formatBytes = (n) => {
   if (n == null) return "—";
@@ -56,31 +62,55 @@ const Snapshots = () => {
     apiKeyId: effectiveKeyId,
   });
 
+  const [takeOpen, setTakeOpen] = useState(false);
   const [promoteFor, setPromoteFor] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
+  // The version this project is on: the highest we can parse out of Cognigy's
+  // live list and our archive. Legacy date-named snapshots simply don't parse.
+  const currentVersion = useMemo(
+    () => latestVersion(collectNames(currents, archived)),
+    [currents, archived],
+  );
+
+  // Shown in the modal while the user writes the next changelog entry.
+  const recentSnapshots = useMemo(
+    () =>
+      currents.slice(0, 5).map((c) => ({
+        key: c.cognigy_snapshot_id,
+        name: c.cognigy_name ?? c.localRow?.name ?? c.cognigy_snapshot_id,
+        description: c.cognigy_description ?? c.localRow?.description ?? "",
+      })),
+    [currents],
+  );
+
   if (!activeProjectId) return <NoActiveProject toolName="Snapshots" />;
   if (projectLoading) return <LoadingScreen text="Loading project…" />;
   if (!project) return <NoActiveProject toolName="Snapshots" />;
 
-  const handleTakeSnapshot = async () => {
+  const handleOpenTake = () => {
     if (!effectiveKeyId) {
       setActionError("Pick an API key first.");
       return;
     }
     setActionError(null);
-    try {
-      await startJob({
-        kind: "create",
-        targetProjectId: activeProjectId,
-        targetApiKeyId: effectiveKeyId,
-      });
-    } catch (err) {
-      setActionError(err.message || String(err));
-    }
+    setTakeOpen(true);
+  };
+
+  // One click, one snapshot: the modal is the only entry point and the job is
+  // enqueued once — the worker claims it so a stray second poll can't re-run it.
+  const handleTakeSnapshot = async ({ name, description, version }) => {
+    await startJob({
+      kind: "create",
+      targetProjectId: activeProjectId,
+      targetApiKeyId: effectiveKeyId,
+      snapshotName: name,
+      snapshotDescription: description,
+      snapshotVersion: version,
+    });
   };
 
   const handleImport = async (cognigySnapshotId) => {
@@ -134,12 +164,23 @@ const Snapshots = () => {
     }
   };
 
-  const handlePromote = async ({ kind, targetProjectId, targetApiKeyId }) => {
+  // safetyName is the target's rollback point (e.g. v1.1.0_pre-promote_Aug-11-2026),
+  // computed in the modal so the user sees it before confirming. The worker
+  // derives it itself if it's missing.
+  const handlePromote = async ({
+    kind,
+    targetProjectId,
+    targetApiKeyId,
+    safetyName,
+    safetyDescription,
+  }) => {
     await startJob({
       kind,
       targetProjectId,
       targetApiKeyId,
       sourceSnapshotId: promoteFor.id,
+      snapshotName: safetyName,
+      snapshotDescription: safetyDescription,
     });
   };
 
@@ -154,6 +195,11 @@ const Snapshots = () => {
           <div className="admin-page-title">Snapshots</div>
           <div className="admin-page-sub">
             {customer?.name} / {project.name}
+            {currentVersion && (
+              <span className="snap-version-badge">
+                {formatVersion(currentVersion)}
+              </span>
+            )}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -181,7 +227,7 @@ const Snapshots = () => {
             type="button"
             className="btn-primary"
             disabled={hasActiveJob || apiKeys.length === 0}
-            onClick={handleTakeSnapshot}
+            onClick={handleOpenTake}
             title={apiKeys.length === 0 ? "Add an API key first" : "Take snapshot in Cognigy"}
           >
             + Take snapshot
@@ -261,7 +307,12 @@ const Snapshots = () => {
               downloadingId={downloadingId}
               onDownload={handleDownload}
               onPromote={(localRow) =>
-                setPromoteFor({ id: localRow.id, name: localRow.name, project_id: localRow.project_id })
+                setPromoteFor({
+                  id: localRow.id,
+                  name: localRow.name,
+                  version: localRow.version,
+                  project_id: localRow.project_id,
+                })
               }
               onImport={handleImport}
             />
@@ -304,7 +355,12 @@ const Snapshots = () => {
               downloadingId={downloadingId}
               onDownload={handleDownload}
               onPromote={(row) =>
-                setPromoteFor({ id: row.id, name: row.name, project_id: row.project_id })
+                setPromoteFor({
+                  id: row.id,
+                  name: row.name,
+                  version: row.version,
+                  project_id: row.project_id,
+                })
               }
               onDelete={(row) => setConfirmDelete(row)}
             />
@@ -313,6 +369,15 @@ const Snapshots = () => {
       )}
 
       {/* Modals ------------------------------------------------------------ */}
+      {takeOpen && (
+        <TakeSnapshotModal
+          open
+          current={currentVersion}
+          recent={recentSnapshots}
+          onClose={() => setTakeOpen(false)}
+          onConfirm={handleTakeSnapshot}
+        />
+      )}
       <PromoteModal
         open={!!promoteFor}
         sourceSnapshot={promoteFor}
@@ -349,6 +414,7 @@ const CurrentRow = ({
 }) => {
   const hasBinary = !!row.localRow?.storage_path;
   const name = row.cognigy_name ?? row.localRow?.name ?? row.cognigy_snapshot_id;
+  const changelog = row.cognigy_description ?? row.localRow?.description;
   const downloadingThis = hasBinary && downloadingId === row.localRow.id;
 
   return (
@@ -365,6 +431,7 @@ const CurrentRow = ({
             </span>
           )}
         </div>
+        {changelog && <div className="row-item-meta">{changelog}</div>}
         <div className="row-item-meta">
           {formatDate(row.cognigy_created_at)} ·{" "}
           {hasBinary ? formatBytes(row.localRow.size_bytes) : "not in store"} ·
@@ -420,6 +487,7 @@ const ArchivedRow = ({
     <div className="row-item">
       <div className="row-item-main">
         <div className="row-item-name">{row.name}</div>
+        {row.description && <div className="row-item-meta">{row.description}</div>}
         <div className="row-item-meta">
           archived {formatDate(row.archived_at)} · {formatBytes(row.size_bytes)}
         </div>

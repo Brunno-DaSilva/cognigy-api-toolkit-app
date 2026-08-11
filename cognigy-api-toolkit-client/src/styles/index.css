@@ -3469,3 +3469,192 @@ body {
   color: var(--text-muted);
   padding: 6px 2px;
 }
+
+/* ── Snapshots: versioning modal ─────────────────────────────── */
+.snap-version-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 20px;
+}
+.snap-version-current {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.snap-version-arrow {
+  color: var(--text-subtle);
+  font-size: 15px;
+}
+.snap-version-next {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.bump-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.bump-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  font-family: inherit;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.bump-option:hover:not(:disabled) {
+  border-color: var(--brand);
+  background: var(--brand-wash-soft);
+}
+.bump-option:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.bump-option--on,
+.bump-option--on:hover:not(:disabled) {
+  border-color: var(--brand);
+  background: var(--brand-wash-soft);
+  box-shadow: 0 0 0 3px var(--brand-wash-strong);
+}
+.bump-option-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+.bump-option-version {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--brand);
+}
+.bump-option-hint {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.snap-changelog {
+  resize: vertical;
+  min-height: 82px;
+  line-height: 1.5;
+}
+
+.snap-history {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.snap-history-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+.snap-history-row + .snap-history-row {
+  border-top: 1px solid var(--border);
+}
+.snap-history-name {
+  flex-shrink: 0;
+  font-weight: 600;
+  min-width: 92px;
+}
+.snap-history-desc {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Version chip on snapshot rows + promote summary */
+.snap-version-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-strong);
+  background: var(--brand-wash-soft);
+  border: 1px solid var(--brand-wash-strong);
+}
+.snap-promote-flow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.snap-promote-flow .snap-version-arrow {
+  font-size: 14px;
+}
+
+/* ── Project discovery (import from Cognigy) ─────────────────── */
+.import-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.import-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.import-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.import-row + .import-row {
+  border-top: 1px solid var(--border);
+}
+.import-row:hover {
+  background: var(--brand-wash-soft);
+}
+.import-row--done,
+.import-row--done:hover {
+  background: var(--surface-2);
+  cursor: default;
+}
+.import-row input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--brand);
+  cursor: inherit;
+}
+.import-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.import-row-name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.import-row-id {
+  font-size: 11px;
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+}

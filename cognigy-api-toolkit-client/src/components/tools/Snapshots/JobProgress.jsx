@@ -5,6 +5,7 @@ const KIND_LABEL = {
   create: "Taking snapshot",
   promote_same: "Promoting (same env)",
   promote_cross: "Promoting (cross env)",
+  import: "Importing into the store",
 };
 
 const STEP_LABEL = {
@@ -29,8 +30,11 @@ const JobProgress = ({ job }) => {
       type: e.type === "ok" ? "ok" : e.type === "err" ? "err" : "info",
     }));
 
+  const kind = KIND_LABEL[job.kind] ?? job.kind;
+  const label = job.snapshot_version ? `${kind} ${job.snapshot_version}` : kind;
+
   return (
-    <Card title={`${KIND_LABEL[job.kind] ?? job.kind} — ${job.status}`}>
+    <Card title={`${label} — ${job.status}`}>
       <div className="grid grid--2 mb-14">
         <div className="row-item-meta">
           Step: <strong>{STEP_LABEL[job.step] ?? job.step ?? "starting"}</strong>

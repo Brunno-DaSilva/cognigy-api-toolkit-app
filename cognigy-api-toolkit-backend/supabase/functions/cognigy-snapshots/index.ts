@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
 // list_remote — proxy GET /v2.0/snapshots?projectId=X
 // ---------------------------------------------------------------------------
 async function listRemote(userClient: any, admin: any, p: any) {
-  const { api_key_id, cognigy_project_id } = p;
+  const { api_key_id, cognigy_project_id, project_id } = p;
   if (!api_key_id || !cognigy_project_id) {
     return json({ error: "api_key_id and cognigy_project_id required" }, 400);
   }
@@ -88,9 +88,11 @@ async function listRemote(userClient: any, admin: any, p: any) {
     .maybeSingle();
   if (ownErr || !ownership) return json({ error: "api key not found" }, 404);
 
+  // project_id lets the RPC resolve the environment's base_url (a QA project
+  // pinned to a QA env must not be listed against the customer default).
   const { data: keyRows, error: keyErr } = await admin.rpc(
     "get_api_key_plaintext",
-    { p_api_key_id: api_key_id },
+    { p_api_key_id: api_key_id, p_project_id: project_id ?? null },
   );
   if (keyErr || !keyRows?.length) return json({ error: "decrypt failed" }, 500);
   const { key_plaintext, base_url } = keyRows[0];

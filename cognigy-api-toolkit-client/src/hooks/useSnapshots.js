@@ -58,6 +58,7 @@ const useSnapshots = ({ projectId, cognigyProjectId, apiKeyId }) => {
                 action: "list_remote",
                 api_key_id: apiKeyId,
                 cognigy_project_id: cognigyProjectId,
+                project_id: projectId,
               },
             },
           );
@@ -136,6 +137,9 @@ const useSnapshots = ({ projectId, cognigyProjectId, apiKeyId }) => {
       sourceSnapshotId,
       sourceApiKeyId,
       sourceCognigySnapshotId,
+      snapshotName,
+      snapshotDescription,
+      snapshotVersion,
     }) => {
       const { data: jobId, error: rpcErr } = await supabase.rpc(
         "start_snapshot_job",
@@ -146,14 +150,16 @@ const useSnapshots = ({ projectId, cognigyProjectId, apiKeyId }) => {
           p_source_snapshot_id: sourceSnapshotId ?? null,
           p_source_api_key_id: sourceApiKeyId ?? null,
           p_source_cognigy_snapshot_id: sourceCognigySnapshotId ?? null,
+          p_snapshot_name: snapshotName ?? null,
+          p_snapshot_description: snapshotDescription ?? null,
+          p_snapshot_version: snapshotVersion ?? null,
         },
       );
       if (rpcErr) throw rpcErr;
+      // Only reload. That makes activeJobs non-empty, which mounts the polling
+      // effect below and its first tick invokes the worker. Kicking the worker
+      // here as well is what made one click create two Cognigy snapshots.
       await reload();
-      supabase.functions
-        .invoke("snapshot-worker", { body: { job_id: jobId } })
-        .then(() => reload())
-        .catch((e) => console.warn("worker initial invoke failed", e));
       return jobId;
     },
     [reload],

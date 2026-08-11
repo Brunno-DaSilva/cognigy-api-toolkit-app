@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import CustomerForm from "../../components/admin/CustomerForm";
 import ProjectForm from "../../components/admin/ProjectForm";
+import ImportProjectsModal from "../../components/admin/ImportProjectsModal";
 import ApiKeyForm from "../../components/admin/ApiKeyForm";
 import EnvironmentForm from "../../components/admin/EnvironmentForm";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
@@ -29,6 +30,7 @@ const CustomerDetail = () => {
   const [confirmCustomerDelete, setConfirmCustomerDelete] = useState(false);
   const [customerDeleting, setCustomerDeleting] = useState(false);
 
+  const [importProjectsOpen, setImportProjectsOpen] = useState(false);
   const [projectFormOpen, setProjectFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [confirmProjectDelete, setConfirmProjectDelete] = useState(null);
@@ -260,21 +262,41 @@ const CustomerDetail = () => {
       {/* Projects -------------------------------------------------------- */}
       <div className="section-header">
         <div className="section-title">Projects</div>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => {
-            setEditingProject(null);
-            setProjectFormOpen(true);
-          }}
-        >
-          + Add project
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => {
+              setEditingProject(null);
+              setProjectFormOpen(true);
+            }}
+          >
+            + Add manually
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => setImportProjectsOpen(true)}
+            disabled={apiKeys.length === 0}
+            title={
+              apiKeys.length === 0
+                ? "Add an API key first — discovery lists the projects that key can see"
+                : "List this customer's projects in Cognigy and import them"
+            }
+          >
+            Import from Cognigy
+          </button>
+        </div>
       </div>
 
       {projects.length === 0 ? (
         <div className="row-list">
-          <div className="row-list-empty">No projects yet.</div>
+          <div className="row-list-empty">
+            No projects yet.{" "}
+            {apiKeys.length === 0
+              ? "Add an API key below, then import this customer's projects straight from Cognigy."
+              : "Use Import from Cognigy to pull in every project this customer's key can see."}
+          </div>
         </div>
       ) : (
         <div className="card-grid">
@@ -397,6 +419,18 @@ const CustomerDetail = () => {
         onClose={() => setCustomerEditOpen(false)}
         onSaved={() => load()}
       />
+
+      {importProjectsOpen && (
+        <ImportProjectsModal
+          open
+          customerId={customerId}
+          apiKeys={apiKeys}
+          environments={environments}
+          existingProjects={projects}
+          onClose={() => setImportProjectsOpen(false)}
+          onSaved={() => load()}
+        />
+      )}
 
       <ProjectForm
         open={projectFormOpen}

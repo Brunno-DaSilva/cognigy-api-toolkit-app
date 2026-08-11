@@ -52,7 +52,11 @@ cognigy-api-toolkit-app/
         │   ├── 0001_initial_schema.sql
         │   ├── 0002_customer_centric_schema.sql
         │   ├── 0003_snapshots.sql
-        │   └── 0004_snapshots_import.sql
+        │   ├── 0004_snapshots_import.sql
+        │   ├── 0005_avatars_storage.sql
+        │   ├── 0006_environments.sql
+        │   ├── 0007_platform.sql
+        │   └── 0008_snapshot_versioning.sql
         ├── functions/
         │   ├── cognigy-proxy/         Generic REST proxy (decrypt key + forward)
         │   ├── cognigy-snapshots/     Snapshot UI primitives (list, sign-url, delete)
@@ -184,15 +188,44 @@ The worker advances jobs one logical step per HTTP invocation. The UI polls `sna
 
 The page renders the job's `log` array as a terminal-style stream so users see progress in real time.
 
-### Naming convention
+### Versioning and naming
 
-Snapshots created through the toolkit follow predictable names:
+Snapshots are semantic versions: `v<major>.<minor>.<patch>`. **Take snapshot** opens a
+modal that reads the project's existing snapshots, shows the version it's on, and asks
+for two things — the bump (major / minor / patch) and a description of what changed.
+Both are required; the confirm button stays disabled until they're filled in, and
+`start_snapshot_job` rejects a `create` without them. The description is stored as the
+snapshot's description in Cognigy and doubles as the changelog shown on each row.
 
-| Kind                        | Name pattern                       | Description                                                  |
-| --------------------------- | ---------------------------------- | ------------------------------------------------------------ |
-| `create` (user-initiated)   | `snapshot_MMM-DD-YYYY_FromToolkit` | Snapshot taken from Cognigy API Toolkit                      |
-| `import`                    | `imported_MMM-DD-YYYY_FromToolkit` | Imported from Cognigy via Toolkit                            |
-| safety snapshot (promote_*) | `backup_MMM-DD-YYYY_FromToolkit`   | Snapshot taken prior to upload a new snapshot from lower env |
+**A version travels with the artifact.** Each project computes its own next version for
+snapshots it creates, but promoting keeps the source name — Dev's `v1.2.0` arrives in QA
+as `v1.2.0`, so one version is traceable across environments. On cross-env promote the
+version is sent as the upload filename and, once the upload lands, the worker checks the
+new snapshot's name in the target and `PATCH`es it if Cognigy named it from inside the
+`.csnap` instead. That rename is best-effort: it logs a warning rather than failing an
+otherwise successful promote.
+
+| Kind                        | Name pattern                          | Version column        |
+| --------------------------- | ------------------------------------- | --------------------- |
+| `create` (user-initiated)   | `v1.2.0`                              | the version           |
+| `import`                    | whatever Cognigy already calls it     | set if the name parses |
+| safety snapshot (promote_*) | `v1.1.0_pre-promote_MMM-DD-YYYY`      | null — a rollback point isn't a release |
+
+The baseline version is the highest parseable `vX.Y.Z` across Cognigy's live list and our
+archive; legacy date-based names simply don't parse. A project with no versioned history
+starts at `v1.0.0` whichever bump is picked. A safety-snapshot name still parses, so it
+can never push the baseline past a version that already exists.
+
+### One click, one snapshot
+
+`claim_snapshot_job` makes advancing a job exclusive at the DB level: a single
+`UPDATE ... WHERE` re-checks its predicate after any concurrent writer commits, so of two
+simultaneous workers exactly one proceeds, and a 150s lease means a worker that dies
+mid-step doesn't wedge the job. The client also enqueues once and lets the poll loop make
+the first worker call — previously it kicked the worker directly *and* the poll loop's
+first tick fired for the same job, so both saw `step = null` and each POSTed its own
+create-snapshot to Cognigy. The DB claim is what makes this hold across page refreshes
+and a second browser tab.
 
 ### Edge Function summary
 
