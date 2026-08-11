@@ -3,7 +3,8 @@
 A web app that wraps the Cognigy.AI REST API with workflows that are missing or painful in the Cognigy GUI:
 
 - **Get Logs** — bulk-export every log entry for a project with full auto-pagination, filtering, and a one-click JSON download.
-- **Snapshots** — overcome Cognigy's 10-snapshot-per-project cap with a persistent toolkit-side store (10 archived slots beyond Cognigy's 10), and one-click promote a snapshot to the same env (restore) or a different env (cross-env upload with automatic safety backup).
+- **Snapshots** — overcome Cognigy's 10-snapshot-per-project cap with a persistent toolkit-side store (10 archived slots beyond Cognigy's 10), semantic versioning (`v1.2.0`) with a changelog per version, and one-click promote a snapshot to the same env (restore) or a different env (cross-env upload with automatic safety backup).
+- **Project discovery** — import a customer's projects straight from Cognigy instead of pasting 24-character project ids, per environment.
 
 API keys never touch the browser. They live encrypted in Postgres (via `pgcrypto` and a Supabase Vault-stored master key) and are decrypted only inside Edge Functions for the duration of a single Cognigy call.
 
@@ -56,7 +57,8 @@ cognigy-api-toolkit-app/
         │   ├── 0005_avatars_storage.sql
         │   ├── 0006_environments.sql
         │   ├── 0007_platform.sql
-        │   └── 0008_snapshot_versioning.sql
+        │   ├── 0008_snapshot_versioning.sql
+        │   └── 0009_project_discovery.sql
         ├── functions/
         │   ├── cognigy-proxy/         Generic REST proxy (decrypt key + forward)
         │   ├── cognigy-snapshots/     Snapshot UI primitives (list, sign-url, delete)
@@ -93,6 +95,11 @@ npx supabase functions deploy cognigy-proxy
 npx supabase functions deploy cognigy-snapshots
 npx supabase functions deploy snapshot-worker
 ```
+
+Order matters after a schema change: `db push` first. The client calls
+`start_snapshot_job` with the versioning arguments added in `0008`, so until that
+migration lands, taking a snapshot fails with *"Could not find the function
+public.start_snapshot_job(...) in the schema cache"*.
 
 The migrations are idempotent against an existing prod DB *only if* migration tracking is already in sync. If `db push` complains about tables already existing, mark earlier migrations as applied:
 
@@ -144,6 +151,22 @@ profiles (= auth.users)
 ```
 
 All tables are protected by RLS: a user only ever sees rows where `user_id = auth.uid()`.
+
+## Project discovery
+
+On a customer page, **Import from Cognigy** lists the projects that customer's API key
+can actually see (`GET /new/v2.0/projects` through `cognigy-proxy`, paged 100 at a time)
+and imports the selected ones. Everything not already imported is pre-selected, so the
+common case is one click. Projects already present are shown greyed out with an
+"Imported" badge rather than hidden, so the list matches what's in Cognigy.
+
+Environment is part of the flow, not an afterthought: the picked environment decides which
+host is listed *and* what the imported rows are pinned to. That required
+`get_api_key_plaintext` to accept an explicit `p_environment_id` (migration `0009`) —
+previously an env base_url was only reachable through a project already pinned to it,
+which is a chicken-and-egg problem when the projects don't exist yet.
+
+`+ Add manually` is still there for one-offs and for editing an existing project.
 
 ## Snapshot system
 

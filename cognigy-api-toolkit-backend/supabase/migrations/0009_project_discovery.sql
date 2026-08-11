@@ -75,8 +75,35 @@ grant execute on function public.get_api_key_plaintext(uuid, uuid, uuid) to serv
 -- can legitimately exist in two environments, and unpinned (null env) rows are
 -- treated as distinct from pinned ones.
 --
--- Pre-existing duplicates would make this fail loudly rather than silently
--- dropping rows; if the push errors here, delete the duplicate project first.
+-- If the data already contains duplicates, creating the index would fail the
+-- whole migration. Skip it with a warning instead: the import dialog filters
+-- out already-imported projects on its own, so the index is a safety net rather
+-- than a correctness requirement. Delete the duplicates and re-run to get it.
 -- ---------------------------------------------------------------------------
-create unique index if not exists projects_customer_cognigy_env_uniq
-  on public.projects (customer_id, cognigy_project_id, coalesce(environment_id, '00000000-0000-0000-0000-000000000000'::uuid));
+do $$
+declare
+  v_dupes int;
+begin
+  select count(*) into v_dupes
+  from (
+    select 1
+    from public.projects
+    group by customer_id, cognigy_project_id,
+             coalesce(environment_id, '00000000-0000-0000-0000-000000000000'::uuid)
+    having count(*) > 1
+  ) d;
+
+  if v_dupes > 0 then
+    raise warning
+      'projects_customer_cognigy_env_uniq not created: % duplicate (customer, cognigy_project_id, environment) group(s) exist. Remove the duplicate projects and re-run this migration to add the constraint.',
+      v_dupes;
+  else
+    create unique index if not exists projects_customer_cognigy_env_uniq
+      on public.projects (
+        customer_id,
+        cognigy_project_id,
+        coalesce(environment_id, '00000000-0000-0000-0000-000000000000'::uuid)
+      );
+  end if;
+end;
+$$;

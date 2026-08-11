@@ -15,6 +15,7 @@ import { useAuth } from "../../context/AuthContext";
 const PAGE = 100;
 const MAX_PAGES = 10; // 1,000 projects — far beyond any real customer
 const EMPTY = new Set();
+const NO_ITEMS = [];
 
 // Unwrap the FunctionsHttpError body cognigy-proxy returns on an upstream error.
 async function invokeError(error) {
@@ -63,7 +64,7 @@ const ImportProjectsModal = ({
   const fetchKey = apiKeyId ? `${apiKeyId}:${environmentId}` : "";
   const fresh = result.key === fetchKey;
   const state = !fetchKey ? "idle" : fresh ? result.state : "loading";
-  const items = fresh ? result.items : [];
+  const items = fresh ? result.items : NO_ITEMS;
 
   useEffect(() => {
     if (!fetchKey) return;
